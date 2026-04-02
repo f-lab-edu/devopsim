@@ -1,0 +1,7 @@
+{
+  "name": "devopsim",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}

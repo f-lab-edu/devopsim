@@ -1,0 +1,23 @@
+{
+  "name": "@devopsim/api",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@devopsim/shared": "*",
+    "@fastify/postgres": "^6.0.0",
+    "fastify": "^5.0.0",
+    "pino": "^9.0.0",
+    "prom-client": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0"
+  }
+}
