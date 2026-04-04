@@ -1,5 +1,5 @@
 # Stage 1: production 의존성만 설치
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 
 WORKDIR /app
 RUN chown node:node /app
@@ -15,7 +15,7 @@ RUN npm ci --omit=dev
 # ---
 # Stage 2: 전체 의존성 설치 + 빌드
 # typescript 등 devDependencies가 필요하므로 별도 스테이지에서 빌드
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 RUN chown node:node /app
@@ -34,7 +34,7 @@ RUN npm run build -w packages/api
 # ---
 # Stage 3: 런타임 이미지
 # node_modules(deps) + dist(builder)
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
