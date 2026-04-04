@@ -50,6 +50,9 @@ COPY --from=builder --chown=node:node /app/packages/shared/package.json ./packag
 COPY --from=builder --chown=node:node /app/packages/api/dist ./packages/api/dist
 COPY --from=builder --chown=node:node /app/packages/shared/dist ./packages/shared/dist
 
+# 마이그레이션 파일
+COPY --from=builder --chown=node:node /app/packages/api/migrations ./packages/api/migrations
+
 USER node
 
 EXPOSE 3000

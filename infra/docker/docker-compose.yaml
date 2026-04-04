@@ -15,6 +15,16 @@ services:
       start_period: 30s
       start_interval: 5s
     depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    build:
+      context: ../../
+      dockerfile: packages/api/Dockerfile
+    env_file: .env
+    command: ["node_modules/.bin/node-pg-migrate", "-m", "packages/api/migrations", "up"]
+    depends_on:
       db:
         condition: service_healthy
 
