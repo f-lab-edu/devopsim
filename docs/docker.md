@@ -242,3 +242,105 @@ docker build -f packages/api/Dockerfile.optimized -t devopsim-api-optimized .
 # 실행
 docker run -e DATABASE_URL=postgresql://dummy -p 3000:3000 devopsim-api-naive
 ```
+
+---
+
+## Dockerfile (프로덕션) — 3-stage 구조
+
+`Dockerfile.optimized`에서 두 가지 문제가 남아 있었다.
+
+1. **node_modules 전체 복사**: builder의 `node_modules`에는 `typescript`, `ts-node` 등 devDependencies가 섞여 있어 runner에서 그대로 복사하면 불필요한 패키지가 포함된다.
+2. **packages/shared 전체 복사**: `packages/shared`의 소스 파일, tsconfig 등 런타임에 불필요한 파일이 최종 이미지에 들어간다.
+
+### 해결 구조: 3-stage 빌드
+
+```
+deps    → npm ci --omit=dev   production 의존성만 설치 (runner에 복사할 node_modules)
+builder → npm ci + tsc 빌드  전체 의존성 + shared/api 각각 빌드 (dist 생성)
+runner  → 조립              deps의 node_modules + builder의 dist만 복사
+```
+
+**왜 deps와 builder를 분리하는가:**
+
+빌드에는 `typescript`가 필요하므로 `npm ci`(전체 설치)를 해야 한다. 그러면 builder의 `node_modules`에 devDependencies가 섞인다. 분리할 방법이 없기 때문에, 처음부터 `--omit=dev`로만 설치한 별도 스테이지(deps)를 만들어 runner에서 가져다 쓴다.
+
+### npm workspaces 심링크와 shared dist
+
+```
+node_modules/@devopsim/shared  →  (심링크)  →  packages/shared/
+                                                  package.json  ← "main": "dist/index.js"
+                                                  dist/index.js ← 실제 파일
+```
+
+`node_modules/@devopsim/shared`는 파일이 없고 `packages/shared/`를 가리키는 심링크다. Node.js가 `require('@devopsim/shared')`를 만나면 심링크를 따라가 `packages/shared/package.json`의 `"main"` 필드를 읽고 `dist/index.js`를 로드한다.
+
+`deps` 스테이지에서는 `package.json`만 복사하고 소스가 없으므로 `packages/shared/dist/`가 존재하지 않는다. 따라서 builder에서 `npm run build -w packages/shared`로 dist를 생성한 뒤 runner에 복사해야 한다.
+
+runner에 필요한 파일:
+- `node_modules/` (deps — production 패키지 + 심링크)
+- `packages/shared/dist/` (builder — 심링크가 가리키는 실제 파일)
+- `packages/shared/package.json` (builder — `"main"` 필드 해석용)
+- `packages/api/dist/` (builder — 앱 실행 파일)
+
+---
+
+## 3-stage 추가 후 실측 비교
+
+환경: Apple M-series, Docker Desktop, base image 캐시됨 (2025-04)
+
+### 이미지 크기
+
+| | naive | optimized | prod (3-stage) |
+|---|---|---|---|
+| 이미지 크기 | 212 MB | 175 MB | **147 MB** |
+| naive 대비 | — | -37 MB (-17%) | **-65 MB (-31%)** |
+
+### node_modules 크기
+
+| | naive | optimized | prod |
+|---|---|---|---|
+| node_modules | 48.6 MB | 48.6 MB | **20.1 MB** |
+
+`optimized`는 multi-stage로 소스를 분리했지만 `node_modules`는 builder 것을 그대로 복사해서 devDependencies가 그대로 포함된다. `prod`는 처음부터 `--omit=dev`로 설치한 것을 가져와 node_modules가 절반 이하다.
+
+### 빌드 시간
+
+| | naive | optimized | prod (3-stage) |
+|---|---|---|---|
+| 빌드 시간 (캐시 활용) | 3.8s | 3.0s | 4.4s |
+
+prod는 스테이지가 하나 더 많아(deps) 빌드 시간이 소폭 증가한다. 그러나 `deps`와 `builder` 스테이지는 병렬 실행 가능하도록 Docker BuildKit이 최적화하므로 실제 차이는 작다.
+
+### 포함 내용 비교
+
+| | naive | optimized | prod |
+|---|---|---|---|
+| 실행 유저 | root (보안 취약) | node | node |
+| src/ 소스 파일 | ✅ 포함 | ❌ 제외 | ❌ 제외 |
+| devDependencies (typescript 등) | ✅ 포함 | ✅ 포함 | ❌ 제외 |
+| packages/shared 소스 | ✅ 포함 | ✅ 포함 | ❌ 제외 (dist만) |
+| production dependencies | ✅ 포함 | ✅ 포함 | ✅ 포함 |
+| dist/ 빌드 결과물 | ✅ 포함 | ✅ 포함 | ✅ 포함 |
+
+### 동작 확인
+
+```bash
+$ docker run -d -p 3001:3000 devopsim-prod
+$ curl http://localhost:3001/health
+{"status":"ok"}
+```
+
+---
+
+## packages/shared 사전 조건
+
+`Dockerfile`(3-stage)에서 `npm run build -w packages/shared`를 실행하므로 `packages/shared`에 빌드 구조가 필요하다.
+
+```
+packages/shared/
+  tsconfig.json   ← packages/api/tsconfig.json과 동일한 구조로 추가
+  src/
+    index.ts      ← shared 유틸리티 진입점
+```
+
+`tsconfig.json` 없이 빌드하면 루트 `tsconfig.json`이 `**/*`로 전체를 탐색해 `packages/api/src`까지 포함하려 해 `rootDir` 충돌 에러가 발생한다.
