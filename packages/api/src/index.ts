@@ -1,12 +1,6 @@
-import Fastify from 'fastify'
-import { logger } from '@devopsim/shared'
-import dbPlugin from './plugins/db'
-import healthRoute from './routes/health'
+import { buildApp } from './app'
 
-const app = Fastify({ loggerInstance: logger })
-
-app.register(dbPlugin)
-app.register(healthRoute)
+const app = buildApp()
 
 const start = async () => {
   try {
