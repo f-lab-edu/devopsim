@@ -5,4 +5,13 @@ export default async function healthRoute(app: FastifyInstance) {
   app.get<{ Reply: HealthResponse }>('/health', async () => {
     return { status: 'ok' }
   })
+
+  app.get('/ready', async (_req, reply) => {
+    try {
+      await app.checkDbHealth()
+      reply.send({ status: 'ok' })
+    } catch (err) {
+      reply.code(503).send({ status: 'unavailable' })
+    }
+  })
 }
