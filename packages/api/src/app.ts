@@ -30,7 +30,7 @@ export function buildApp(opts: { logger?: boolean } = {}) {
   app.after(() => {
     const repo = pgItemRepository(app.pg.pool)
     const service = itemService(repo)
-    app.register(itemsRoute, { service })
+    app.register(itemsRoute, { service, prefix: '/api' })
   })
 
   app.register(healthRoute)

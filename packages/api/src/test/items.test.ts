@@ -19,7 +19,7 @@ describe('POST /items', () => {
   test('정상 요청 → 201 + 생성된 item 반환', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/api/items',
       payload: { name: '테스트 아이템', description: '설명' },
     })
     expect(res.statusCode).toBe(201)
@@ -33,7 +33,7 @@ describe('POST /items', () => {
   test('description 없이 name만 → 201', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/api/items',
       payload: { name: '이름만' },
     })
     expect(res.statusCode).toBe(201)
@@ -45,7 +45,7 @@ describe('POST /items', () => {
   test('name 누락 → 400', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/api/items',
       payload: { description: '이름없음' },
     })
     expect(res.statusCode).toBe(400)
@@ -54,7 +54,7 @@ describe('POST /items', () => {
   test('허용되지 않은 필드 포함 → Fastify가 strip 후 201 (additionalProperties 제거)', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/api/items',
       payload: { name: '아이템', hack: true },
     })
     // Fastify 기본 동작: 추가 필드를 거절이 아닌 제거(strip)하고 처리
@@ -67,7 +67,7 @@ describe('POST /items', () => {
   test('name 0자(빈 문자열) → 400', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/api/items',
       payload: { name: '' },
     })
     expect(res.statusCode).toBe(400)
@@ -76,7 +76,7 @@ describe('POST /items', () => {
   test('name 1자(최솟값) → 201', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/api/items',
       payload: { name: 'a' },
     })
     expect(res.statusCode).toBe(201)
@@ -85,7 +85,7 @@ describe('POST /items', () => {
   test('name 255자(최댓값) → 201', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/api/items',
       payload: { name: 'a'.repeat(255) },
     })
     expect(res.statusCode).toBe(201)
@@ -94,7 +94,7 @@ describe('POST /items', () => {
   test('name 256자(최댓값+1) → 400', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/api/items',
       payload: { name: 'a'.repeat(256) },
     })
     expect(res.statusCode).toBe(400)
@@ -121,13 +121,13 @@ describe('GET /items/:id', () => {
   // --- ECP ---
 
   test('존재하는 id → 200 + item 반환', async () => {
-    const res = await app.inject({ method: 'GET', url: `/items/${createdId}` })
+    const res = await app.inject({ method: 'GET', url: `/api/items/${createdId}` })
     expect(res.statusCode).toBe(200)
     expect(res.json().id).toBe(createdId)
   })
 
   test('존재하지 않는 id → 404', async () => {
-    const res = await app.inject({ method: 'GET', url: '/items/999999' })
+    const res = await app.inject({ method: 'GET', url: '/api/items/999999' })
     expect(res.statusCode).toBe(404)
     expect(res.json().message).toBe('Item not found')
   })
@@ -155,7 +155,7 @@ describe('PUT /items/:id', () => {
   test('name만 수정 → 200 + 변경 반영', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: `/items/${createdId}`,
+      url: `/api/items/${createdId}`,
       payload: { name: '수정된 이름' },
     })
     expect(res.statusCode).toBe(200)
@@ -166,7 +166,7 @@ describe('PUT /items/:id', () => {
   test('description만 수정 → 200', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: `/items/${createdId}`,
+      url: `/api/items/${createdId}`,
       payload: { description: '수정된 설명' },
     })
     expect(res.statusCode).toBe(200)
@@ -176,7 +176,7 @@ describe('PUT /items/:id', () => {
   test('name + description 동시 수정 → 200', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: `/items/${createdId}`,
+      url: `/api/items/${createdId}`,
       payload: { name: '새이름', description: '새설명' },
     })
     expect(res.statusCode).toBe(200)
@@ -189,7 +189,7 @@ describe('PUT /items/:id', () => {
   test('빈 body → 400', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: `/items/${createdId}`,
+      url: `/api/items/${createdId}`,
       payload: {},
     })
     expect(res.statusCode).toBe(400)
@@ -198,7 +198,7 @@ describe('PUT /items/:id', () => {
   test('존재하지 않는 id → 404', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: '/items/999999',
+      url: '/api/items/999999',
       payload: { name: '수정' },
     })
     expect(res.statusCode).toBe(404)
@@ -209,7 +209,7 @@ describe('PUT /items/:id', () => {
   test('name 1자 수정(최솟값) → 200', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: `/items/${createdId}`,
+      url: `/api/items/${createdId}`,
       payload: { name: 'a' },
     })
     expect(res.statusCode).toBe(200)
@@ -218,7 +218,7 @@ describe('PUT /items/:id', () => {
   test('name 255자 수정(최댓값) → 200', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: `/items/${createdId}`,
+      url: `/api/items/${createdId}`,
       payload: { name: 'a'.repeat(255) },
     })
     expect(res.statusCode).toBe(200)
@@ -227,7 +227,7 @@ describe('PUT /items/:id', () => {
   test('name 256자 수정(최댓값+1) → 400', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: `/items/${createdId}`,
+      url: `/api/items/${createdId}`,
       payload: { name: 'a'.repeat(256) },
     })
     expect(res.statusCode).toBe(400)
@@ -252,12 +252,12 @@ describe('DELETE /items/:id', () => {
   })
 
   test('존재하는 id → 204', async () => {
-    const res = await app.inject({ method: 'DELETE', url: `/items/${createdId}` })
+    const res = await app.inject({ method: 'DELETE', url: `/api/items/${createdId}` })
     expect(res.statusCode).toBe(204)
   })
 
   test('존재하지 않는 id → 404', async () => {
-    const res = await app.inject({ method: 'DELETE', url: '/items/999999' })
+    const res = await app.inject({ method: 'DELETE', url: '/api/items/999999' })
     expect(res.statusCode).toBe(404)
   })
 })
