@@ -3,11 +3,13 @@ kind: Service
 metadata:
   name: db
   labels:
-    app: db
+    app.kubernetes.io/name: db
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: devopsim
 spec:
   type: ClusterIP
   selector:
-    app: db
+    app.kubernetes.io/name: db
   ports:
     - name: postgres
       port: 5432

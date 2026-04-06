@@ -26,4 +26,4 @@ patches:
         value: Never
     target:
       kind: Deployment
-      name: api
+      name: api # metadata.name 으로 매핑
