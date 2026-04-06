@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+spec:
+  ttlSecondsAfterFinished: 60 # 완료 후 1분 뒤 자동 삭제
+  backoffLimit: 3 # 실패 시 최대 3번 재시도
+  template:
+    spec:
+      restartPolicy: OnFailure
+
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            [
+              "sh",
+              "-c",
+              'until pg_isready -h db -p 5432; do echo "waiting..."; sleep 2; done',
+            ]
+
+      containers:
+        - name: migrate
+          image: devopsim-api:latest
+          imagePullPolicy: Never
+          command:
+            [
+              "node_modules/.bin/node-pg-migrate",
+              "-m",
+              "packages/api/migrations",
+              "up",
+            ]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: database-url
