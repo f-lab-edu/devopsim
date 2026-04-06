@@ -88,12 +88,12 @@ curl http://localhost:3000/health
 curl http://localhost:3000/ready
 
 # 아이템 생성
-curl -X POST http://localhost:3000/items \
+curl -X POST http://localhost:3000/api/items \
   -H "Content-Type: application/json" \
   -d '{"name": "test", "description": "hello"}'
 
 # 목록 조회
-curl http://localhost:3000/items
+curl http://localhost:3000/api/items
 ```
 
 ### 4. 종료
@@ -148,11 +148,11 @@ TEST_DATABASE_URL=postgresql://devopsim:devopsim@localhost:5432/devopsim \
 |--------|------|------|
 | GET | /health | liveness — 프로세스 생존 확인 |
 | GET | /ready | readiness — DB 연결 상태 확인 |
-| POST | /items | 아이템 생성 |
-| GET | /items | 목록 조회 |
-| GET | /items/:id | 상세 조회 |
-| PUT | /items/:id | 수정 |
-| DELETE | /items/:id | 삭제 |
+| POST | /api/items | 아이템 생성 |
+| GET | /api/items | 목록 조회 |
+| GET | /api/items/:id | 상세 조회 |
+| PUT | /api/items/:id | 수정 |
+| DELETE | /api/items/:id | 삭제 |
 
 ---
 ## 주차별 진행
