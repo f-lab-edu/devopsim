@@ -3,7 +3,9 @@ kind: Ingress
 metadata:
   name: api
   labels:
-    app: api
+    app.kubernetes.io/name: api
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: devopsim
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:

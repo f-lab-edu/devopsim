@@ -3,17 +3,21 @@ kind: StatefulSet
 metadata:
   name: db
   labels:
-    app: db
+    app.kubernetes.io/name: db
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: devopsim
 spec:
   serviceName: db
   replicas: 1
   selector:
     matchLabels:
-      app: db
+      app.kubernetes.io/name: db
   template:
     metadata:
       labels:
-        app: db
+        app.kubernetes.io/name: db
+        app.kubernetes.io/component: database
+        app.kubernetes.io/part-of: devopsim
     spec:
       containers:
         - name: db
