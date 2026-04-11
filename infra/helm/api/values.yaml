@@ -8,6 +8,16 @@ image:
 nameOverride: ""
 fullnameOverride: ""
 
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: nginx
+  host: ""
+  annotations: {}
+
 db:
   host: db
   port: 5432
