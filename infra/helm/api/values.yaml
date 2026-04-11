@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image:
+  repository: devopsim-api
+  pullPolicy: IfNotPresent
+  tag: "" # 비워두면 Chart.yaml의 appVersion 사용
+
+nameOverride: ""
+fullnameOverride: ""
+
+db:
+  host: db
+  port: 5432
+  secretName: api-secret
+
+waitForDb:
+  enabled: true
+
+resources: {}
+#  requests:
+#    cpu: "100m"
+#    memory: "128Mi"
+#  limits:
+#    cpu: "500m"
+#    memory: "256Mi"
