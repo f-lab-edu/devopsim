@@ -1,0 +1,13 @@
+devopsim API has been deployed.
+
+Access the application:
+{{- if .Values.ingress.enabled }}
+  http://{{ .Values.ingress.host }}
+{{- else }}
+  kubectl port-forward svc/{{ include "api.fullname" . }} 3000:{{ .Values.service.port }}
+  http://localhost:3000
+{{- end }}
+
+Check status:
+  helm status {{ .Release.Name }}
+  kubectl get pods -l app.kubernetes.io/name={{ include "api.name" . }}
