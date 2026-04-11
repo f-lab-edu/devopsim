@@ -1,5 +1,5 @@
 apiVersion: networking.k8s.io/v1
-kind: Ingress
+kind: Ingress # nginx를 쓴다
 metadata:
   name: api
   labels:
@@ -8,6 +8,7 @@ metadata:
     app.kubernetes.io/part-of: devopsim
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    #
 spec:
   ingressClassName: nginx
   rules:
@@ -20,3 +21,5 @@ spec:
                 name: api
                 port:
                   number: 80
+# L4
+# kind: Ingress vs Service: lb
