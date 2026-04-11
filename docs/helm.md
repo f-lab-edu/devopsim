@@ -208,6 +208,96 @@ kind: StatefulSet
 
 ---
 
+## Service와 Ingress
+
+### Service (네트워크 오브젝트)
+
+Service는 워크로드가 아닌 네트워크 오브젝트다. 특정 노드가 아닌 **클러스터 레벨**에 존재한다.
+
+```
+ClusterIP (고정 가상 IP)
+    ↓ kube-proxy가 라우팅
+Pod (containerPort: 3000)
+```
+
+- Pod IP는 재시작마다 바뀌지만 Service ClusterIP는 고정
+- `port: 80 → targetPort: 3000` 포워딩
+- CoreDNS가 Service 이름(`db`, `api`)을 ClusterIP로 해석
+
+### Ingress (네트워크 오브젝트)
+
+Ingress도 클러스터 레벨 오브젝트다. 실제 트래픽은 **Ingress Controller Pod**가 처리한다.
+
+```
+외부 요청
+    ↓
+Ingress Controller Pod (노드에 존재)  ← Ingress 규칙 읽어서 라우팅
+    ↓
+Service (ClusterIP)
+    ↓
+api Pod
+```
+
+### 로컬 vs AWS 구조 차이
+
+| | minikube (로컬) | AWS EKS |
+|---|---|---|
+| Controller | nginx Pod (노드에 존재) | AWS ALB (노드 밖 AWS 인프라) |
+| 노드 장애 시 | 통신 불가 (단일 노드) | 다른 노드로 계속 서비스 |
+| 외부 접근 | minikube tunnel → 127.0.0.1 | ALB DNS 주소 |
+
+로컬에서 노드가 죽으면 nginx Controller Pod도 같이 죽어서 통신 불가. 멀티 노드 HA는 EKS에서만 의미 있다.
+
+### Ingress host 설정
+
+```yaml
+host: ""           # 모든 IP/도메인으로 들어오는 요청 처리
+                   # minikube tunnel 시 127.0.0.1로 접근 가능
+
+host: "api.devopsim.com"  # 해당 도메인으로만 처리
+                           # Route53 도메인 구매 + ALB DNS 연결 필요
+```
+
+### nginx → ALB 전환 시 변경 사항
+
+템플릿은 그대로, values만 바꾼다:
+
+```yaml
+# values-production.yaml
+ingress:
+  enabled: true
+  className: alb                         # nginx → alb
+  host: api.devopsim.com
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+```
+
+ALB Controller가 이 Ingress를 읽고 AWS ALB를 자동 생성한다.
+
+### Ingress enabled 패턴
+
+```yaml
+# values.yaml
+ingress:
+  enabled: false   # 기본 비활성
+
+# templates/ingress.yaml
+{{- if .Values.ingress.enabled }}
+...
+{{- end }}
+```
+
+`enabled: false`면 Ingress 오브젝트 자체가 렌더링되지 않는다.
+
+```bash
+# Ingress 포함해서 확인
+helm template api infra/helm/api --set ingress.enabled=true
+helm install api infra/helm/api --dry-run=server --set ingress.enabled=true
+```
+
+---
+
 ## ArgoCD + 모노레포 GitOps
 
 모노레포에서 앱별 독립 자동 배포가 가능하다.
