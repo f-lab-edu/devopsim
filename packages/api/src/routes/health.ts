@@ -14,4 +14,8 @@ export default async function healthRoute(app: FastifyInstance) {
       reply.code(503).send({ status: 'unavailable' })
     }
   })
+
+  app.get('/api/version', async () => {
+    return { version: '0.0.2' }
+  })
 }
