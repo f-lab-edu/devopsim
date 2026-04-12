@@ -1,4 +1,4 @@
-# Helm 학습 기록
+# Helm
 
 ## Helm이란
 
@@ -79,6 +79,7 @@ infra/helm/api/
 ```
 infra/helm/
   api/        ← helm install api ./infra/helm/api
+  db/        ← helm install db ./infra/helm/db
   detector/   ← helm install detector ./infra/helm/detector
   dashboard/  ← helm install dashboard ./infra/helm/dashboard
 ```
@@ -179,96 +180,6 @@ helm install api infra/helm/api --dry-run=server
 
 ---
 
-## Service와 Ingress
-
-### Service (네트워크 오브젝트)
-
-Service는 워크로드가 아닌 네트워크 오브젝트다. 특정 노드가 아닌 **클러스터 레벨**에 존재한다.
-
-```
-ClusterIP (고정 가상 IP)
-    ↓ kube-proxy가 라우팅
-Pod (containerPort: 3000)
-```
-
-- Pod IP는 재시작마다 바뀌지만 Service ClusterIP는 고정
-- `port: 80 → targetPort: 3000` 포워딩
-- CoreDNS가 Service 이름(`db`, `api`)을 ClusterIP로 해석
-
-### Ingress (네트워크 오브젝트)
-
-Ingress도 클러스터 레벨 오브젝트다. 실제 트래픽은 **Ingress Controller Pod**가 처리한다.
-
-```
-외부 요청
-    ↓
-Ingress Controller Pod (노드에 존재)  ← Ingress 규칙 읽어서 라우팅
-    ↓
-Service (ClusterIP)
-    ↓
-api Pod
-```
-
-### 로컬 vs AWS 구조 차이
-
-| | minikube (로컬) | AWS EKS |
-|---|---|---|
-| Controller | nginx Pod (노드에 존재) | AWS ALB (노드 밖 AWS 인프라) |
-| 노드 장애 시 | 통신 불가 (단일 노드) | 다른 노드로 계속 서비스 |
-| 외부 접근 | minikube tunnel → 127.0.0.1 | ALB DNS 주소 |
-
-로컬에서 노드가 죽으면 nginx Controller Pod도 같이 죽어서 통신 불가. 멀티 노드 HA는 EKS에서만 의미 있다.
-
-### Ingress host 설정
-
-```yaml
-host: ""           # 모든 IP/도메인으로 들어오는 요청 처리
-                   # minikube tunnel 시 127.0.0.1로 접근 가능
-
-host: "api.devopsim.com"  # 해당 도메인으로만 처리
-                           # Route53 도메인 구매 + ALB DNS 연결 필요
-```
-
-### nginx → ALB 전환 시 변경 사항
-
-템플릿은 그대로, values만 바꾼다:
-
-```yaml
-# values-production.yaml
-ingress:
-  enabled: true
-  className: alb                         # nginx → alb
-  host: api.devopsim.com
-  annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-```
-
-ALB Controller가 이 Ingress를 읽고 AWS ALB를 자동 생성한다.
-
-### Ingress enabled 패턴
-
-```yaml
-# values.yaml
-ingress:
-  enabled: false   # 기본 비활성
-
-# templates/ingress.yaml
-{{- if .Values.ingress.enabled }}
-...
-{{- end }}
-```
-
-`enabled: false`면 Ingress 오브젝트 자체가 렌더링되지 않는다.
-
-```bash
-# Ingress 포함해서 확인
-helm template api infra/helm/api --set ingress.enabled=true
-helm install api infra/helm/api --dry-run=server --set ingress.enabled=true
-```
-
----
-
 ## DB 마이그레이션 전략
 
 ### 방법별 비교
@@ -280,7 +191,7 @@ helm install api infra/helm/api --dry-run=server --set ingress.enabled=true
 | Helm Hook (Job) | helm install/upgrade 시 | 없음 (권장) |
 | GitHub Actions | git push 시 | ArgoCD 환경에서 별도 클러스터 접근 권한 필요 |
 
-2, 3번은 api Pod가 뜰 때마다 실행되어 스케일 아웃 시 여러 Pod가 동시에 migrate를 시도하는 레이스 컨디션이 발생한다.
+(initContainer, 앱 코드에서 실행) 방법은 api Pod가 뜰 때마다 실행되어 스케일 아웃 시 여러 Pod가 동시에 migrate를 시도하는 레이스 컨디션이 발생한다.
 
 ### Helm Hook 선택 이유
 
@@ -379,6 +290,78 @@ helm upgrade
 ```
 
 Helm이 순서를 명시적으로 보장한다. 단, `wait-for-db`는 여전히 필요하다. hook이 "배포 전"은 보장하지만 "db가 실제로 ready 상태"까지는 보장하지 않기 때문이다.
+
+---
+
+## Chart 분리 — db를 api에서 독립
+
+### 왜 분리했나
+
+처음에 db StatefulSet을 api Chart 안에 넣었다가 두 가지 문제가 발생했다.
+
+**문제 1: pre-install hook deadlock**
+
+같은 Chart 안에 db StatefulSet과 migrate hook이 있으면:
+```
+pre-install hook → migrate Job 실행
+  → wait-for-db: db 기다림
+  → 근데 db StatefulSet은 hook 완료 후 생성 예정
+  → 영원히 대기 (deadlock)
+```
+
+**문제 2: 구조적 결합**
+
+앞을 추가될 앱들도 같은 DB를 쓰는데, db가 api Chart에 묶이면 api 배포할 때마다 db도 함께 관리해야 한다. db는 어느 앱에도 속하지 않는 독립 인프라다.
+
+### 분리 후 구조
+
+```
+helm/db/     ← 독립 인프라 Chart
+  templates/
+    statefulset.yaml
+    service.yaml
+
+helm/api/    ← 앱 Chart
+  templates/
+    deployment.yaml
+    service.yaml
+    ingress.yaml
+    migrate-job.yaml  ← pre-install hook (db가 이미 떠있음)
+```
+
+### 배포 순서
+
+```bash
+helm install db ./infra/helm/db        # db 먼저
+kubectl wait --for=condition=ready pod/db-0 --timeout=60s
+helm install api ./infra/helm/api -f values-local.yaml  # 그 다음 api
+```
+
+db가 이미 떠있으니 pre-install hook이 정상 동작한다.
+
+### fullnameOverride로 Service 이름 고정
+
+```yaml
+# db/values.yaml
+fullnameOverride: "db"
+```
+
+없으면 Service 이름이 `release-name + chart-name` 조합이 된다:
+```bash
+helm install db ./infra/helm/db     → Service: db-db  ← 의도와 다름
+helm install postgres ./infra/helm/db → Service: postgres-db
+```
+
+`fullnameOverride: "db"`로 고정하면 어떤 이름으로 install해도 Service 이름은 항상 `db`다. api가 `@db:5432`로 항상 접근 가능하다.
+
+### api Chart의 db 참조
+
+```yaml
+# api/values.yaml
+db:
+  host: db    # CoreDNS로 db Service 찾음
+  port: 5432  # db → db.default.svc.cluster.local → ClusterIP
+```
 
 ---
 
