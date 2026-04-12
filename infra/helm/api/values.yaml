@@ -19,18 +19,10 @@ ingress:
   annotations: {}
 
 db:
-  enabled: true          # false로 하면 StatefulSet 안 만들어짐 (production RDS 사용 시)
-  host: db
+  host: db # db Chart의 Service 이름
   port: 5432
-  user: devopsim
-  secretName: postgres-secret  # StatefulSet용 (POSTGRES_USER/PASSWORD/DB)
-  storage: 1Gi
-  image:
-    repository: postgres
-    tag: "16-alpine"
-    pullPolicy: IfNotPresent
 
-apiSecretName: api-secret  # api Deployment용 (DATABASE_URL)
+apiSecretName: api-secret
 
 waitForDb:
   enabled: true

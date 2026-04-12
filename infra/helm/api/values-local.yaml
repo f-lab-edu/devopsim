@@ -1,7 +1,7 @@
 replicaCount: 3
 
 image:
-  tag: latest
+  tag: "0.0.1"
   pullPolicy: Never   # minikube 로컬 이미지 사용
 
 ingress:
