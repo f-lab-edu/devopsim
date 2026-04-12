@@ -1,0 +1,9 @@
+devopsim PostgreSQL has been deployed.
+
+Connect from within the cluster:
+  host: {{ include "db.fullname" . }}
+  port: {{ .Values.service.port }}
+
+Check status:
+  helm status {{ .Release.Name }}
+  kubectl get pods -l app.kubernetes.io/name={{ include "db.name" . }}
