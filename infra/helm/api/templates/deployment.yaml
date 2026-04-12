@@ -29,7 +29,7 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
+                  name: {{ .Values.apiSecretName }}
                   key: database-url
           ports:
             - name: http

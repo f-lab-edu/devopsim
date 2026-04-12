@@ -1,0 +1,12 @@
+replicaCount: 3
+
+image:
+  tag: latest
+  pullPolicy: Never   # minikube 로컬 이미지 사용
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ""
+
+resources: {}
