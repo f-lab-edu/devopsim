@@ -39,7 +39,10 @@ packages/
 
 infra/
   docker/       docker-compose 로컬 실행 환경
-  k8s/          Kubernetes 매니페스트
+  k8s/          Kubernetes 매니페스트 (Kustomize)
+  helm/         Helm Charts
+    api/        api 앱 Chart
+    db/         PostgreSQL Chart (독립 인프라)
   terraform/    AWS EKS 인프라 (IaC)
 
 scenarios/      장애 시나리오 스크립트
@@ -108,6 +111,93 @@ docker compose down -v
 
 ---
 
+## 로컬 실행 (Helm + minikube)
+
+### 사전 조건
+
+- minikube 실행 중 (`minikube start`)
+- Helm 설치 (`brew install helm`)
+
+### 1. minikube에 이미지 빌드
+
+```bash
+eval $(minikube docker-env)
+docker build -t devopsim-api:latest -f packages/api/Dockerfile .
+eval $(minikube docker-env -u)
+```
+
+### 2. Secret 생성
+
+```bash
+kubectl create secret generic postgres-secret \
+  --from-literal=postgres-db=devopsim \
+  --from-literal=postgres-user=devopsim \
+  --from-literal=postgres-password=devopsim
+
+kubectl create secret generic api-secret \
+  --from-literal=database-url="postgresql://devopsim:devopsim@db:5432/devopsim"
+```
+
+### 3. DB 먼저 배포
+
+```bash
+helm install db infra/helm/db
+kubectl wait --for=condition=ready pod/db-0 --timeout=60s
+```
+
+### 4. API 배포
+
+```bash
+helm install api infra/helm/api -f infra/helm/api/values-local.yaml
+```
+
+기동 순서: `db (ready)` → `migrate Job (pre-install hook)` → `api × 3`
+
+### 5. 동작 확인
+
+```bash
+# minikube tunnel 실행 (별도 터미널, sudo 필요)
+minikube tunnel
+
+# 테스트
+curl http://127.0.0.1/health
+curl http://127.0.0.1/ready
+curl -X POST http://127.0.0.1/api/items \
+  -H "Content-Type: application/json" \
+  -d '{"name": "test"}'
+curl http://127.0.0.1/api/items
+```
+
+### 6. 종료
+
+```bash
+helm uninstall api
+helm uninstall db
+kubectl delete secret api-secret postgres-secret
+kubectl delete pvc postgres-data-db-0
+```
+
+### Helm 유용한 명령어
+
+```bash
+# 배포 이력 확인
+helm history api
+
+# 상태 확인
+helm status api
+
+# 이전 버전으로 롤백
+helm rollback api 1
+
+# 렌더링 결과 확인 (배포 없이)
+helm template api infra/helm/api -f infra/helm/api/values-local.yaml
+
+# K8s 유효성 검사 포함 dry-run
+helm install api infra/helm/api --dry-run=server
+```
+
+---
+
 ## 개발 환경 실행
 
 ### 사전 조건
@@ -153,21 +243,3 @@ TEST_DATABASE_URL=postgresql://devopsim:devopsim@localhost:5432/devopsim \
 | GET | /api/items/:id | 상세 조회 |
 | PUT | /api/items/:id | 수정 |
 | DELETE | /api/items/:id | 삭제 |
-
----
-## 주차별 진행
-
-| 주차 | 내용 |
-|------|------|
-| week1 | Docker 최적화, Fastify CRUD API, docker-compose + node-pg-migrate |
-| week2 | Kubernetes (minikube), Deployment/Service/Ingress, probe 설정 |
-| week3 | Helm Chart 작성, 환경별 values 분리 |
-| week4 | Terraform으로 AWS VPC + EKS 클러스터 구성 |
-| week5 | ECR + ArgoCD GitOps 배포 루프 |
-| week6 | GitHub Actions CI/CD 파이프라인 |
-| week7 | Karpenter + HPA 오토스케일링 |
-| week8 | Redis 캐시 + RDS Read Replica |
-| week9 | Prometheus 커스텀 메트릭 + Grafana 대시보드 |
-| week10 | PrometheusRule + Alertmanager + Loki |
-| week11 | Traefik + HTTPS + Rate Limit |
-| week12 | 부하 테스트 + 장애 시나리오 종합 실습 |
