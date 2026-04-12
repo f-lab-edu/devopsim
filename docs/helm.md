@@ -179,35 +179,6 @@ helm install api infra/helm/api --dry-run=server
 
 ---
 
-## production에서 DB 분리
-
-로컬은 StatefulSet, production은 RDS를 쓰는 구조:
-
-```yaml
-# values.yaml
-db:
-  enabled: true
-  host: db
-  port: 5432
-
-# values-production.yaml
-db:
-  enabled: false
-  host: mydb.xxxx.rds.amazonaws.com
-  port: 5432
-```
-
-```yaml
-# templates/db-statefulset.yaml
-{{- if .Values.db.enabled }}
-apiVersion: apps/v1
-kind: StatefulSet
-...
-{{- end }}
-```
-
----
-
 ## Service와 Ingress
 
 ### Service (네트워크 오브젝트)
@@ -294,6 +265,157 @@ ingress:
 # Ingress 포함해서 확인
 helm template api infra/helm/api --set ingress.enabled=true
 helm install api infra/helm/api --dry-run=server --set ingress.enabled=true
+```
+
+---
+
+## DB 마이그레이션 전략
+
+### 방법별 비교
+
+| 방법 | 실행 시점 | 문제점 |
+|---|---|---|
+| initContainer | api Pod 뜰 때마다 | 스케일 아웃 시 레이스 컨디션 → DB lock 필요 |
+| 앱 코드에서 실행 | 앱 시작 시 | 동일하게 레이스 컨디션 → DB lock 필요 |
+| Helm Hook (Job) | helm install/upgrade 시 | 없음 (권장) |
+| GitHub Actions | git push 시 | ArgoCD 환경에서 별도 클러스터 접근 권한 필요 |
+
+2, 3번은 api Pod가 뜰 때마다 실행되어 스케일 아웃 시 여러 Pod가 동시에 migrate를 시도하는 레이스 컨디션이 발생한다.
+
+### Helm Hook 선택 이유
+
+```
+helm upgrade api infra/helm/api
+  → pre-upgrade Hook: migrate Job 자동 실행
+  → DB에 직접 접근 (클러스터 내부)
+  → Job 완료 확인
+  → Deployment 롤링 업데이트
+```
+
+ArgoCD GitOps 환경에서 CI가 직접 클러스터에 접근하지 않아도 되고, `helm upgrade` 한 번으로 마이그레이션 + 배포가 자동화된다.
+
+GitHub Actions 방식은 migrate 단계를 독립적으로 세밀하게 제어할 수 있지만, ArgoCD 환경에서는 클러스터 접근 권한을 별도로 줘야 해서 복잡해진다.
+
+### Hook 어노테이션
+
+```yaml
+annotations:
+  helm.sh/hook: pre-install,pre-upgrade       # install, upgrade 시 모두 실행
+  helm.sh/hook-weight: "0"                    # 여러 hook 간 실행 순서 (낮을수록 먼저)
+  helm.sh/hook-delete-policy: before-hook-creation  # 다음 실행 전 이전 Job 삭제
+```
+
+`hook-delete-policy: before-hook-creation` — 같은 이름의 Job이 이미 있으면 삭제 후 재생성. 이전 migrate Job이 남아있어도 `helm upgrade` 시 항상 새로 실행된다.
+
+### node-pg-migrate idempotent 보장
+
+node-pg-migrate가 DB 안에 `pgmigrations` 테이블을 자동으로 관리한다.
+
+```sql
+-- devopsim DB 안에 자동 생성 (StatefulSet PVC에 영속)
+SELECT * FROM pgmigrations;
+-- name                  | run_on
+-- 001_create_items      | 2026-04-01
+-- 002_add_tags          | 2026-04-10
+```
+
+```
+node-pg-migrate up 실행
+  → pgmigrations 테이블 조회
+  → migrations/ 파일 목록과 비교
+  → 테이블에 없는 파일만 실행
+  → 이미 있는 파일은 스킵 (idempotent)
+```
+
+매번 실행해도 안전하다. Pod 재시작, helm upgrade 반복 실행 모두 안전.
+
+### pre-install vs post-install hook — deadlock 주의
+
+같은 Chart 안에 DB StatefulSet과 migrate Job이 함께 있을 때 `pre-install` hook을 쓰면 deadlock이 발생한다.
+
+```
+pre-install hook 실행 (다른 리소스보다 먼저)
+  → migrate Job 생성
+  → wait-for-db: db 기다림
+  → 근데 db StatefulSet은 hook 완료 후 생성 예정
+  → 영원히 대기 (deadlock)
+```
+
+**해결: `post-install,post-upgrade`로 변경**
+
+```yaml
+annotations:
+  helm.sh/hook: post-install,post-upgrade  # 모든 리소스 배포 후 실행
+```
+
+```
+db StatefulSet, api Deployment 배포
+  → 완료 후 migrate Job 실행 (post-install)
+  → wait-for-db: db ready 대기
+  → migrate 실행
+```
+
+`pre-install`은 Chart 밖에 DB가 있을 때(RDS 등) 적합하다. 같은 Chart 안에 DB가 있으면 `post-install`을 써야 한다.
+
+---
+
+### Kustomize(K8s Job) vs Helm Hook 순서 보장 비교
+
+**Kustomize 방식 (기존):**
+```bash
+kubectl apply -k overlays/local
+  → db StatefulSet, api Deployment, migrate Job 동시 생성
+  → 순서 보장 없음
+  → migrate Job 안의 wait-for-db initContainer가 대기 역할
+```
+
+순서 보장을 Job 내부 로직(wait-for-db)으로 해결했다.
+
+**Helm Hook 방식:**
+```
+helm upgrade
+  → pre-upgrade: migrate Job 실행 + 완료 대기 (Helm이 보장)
+  → 완료 후: StatefulSet, Deployment 배포
+```
+
+Helm이 순서를 명시적으로 보장한다. 단, `wait-for-db`는 여전히 필요하다. hook이 "배포 전"은 보장하지만 "db가 실제로 ready 상태"까지는 보장하지 않기 때문이다.
+
+---
+
+## Secret 관리
+
+### 로컬 환경
+
+Secret은 Helm Chart에 포함하지 않는다. `kubectl create secret`으로 직접 생성한다.
+
+```bash
+kubectl create secret generic postgres-secret \
+  --from-literal=postgres-db=devopsim \
+  --from-literal=postgres-user=devopsim \
+  --from-literal=postgres-password=devopsim
+
+kubectl create secret generic api-secret \
+  --from-literal=database-url="postgresql://devopsim:devopsim@db:5432/devopsim"
+```
+
+### 운영 환경 Secret 관리 방법
+
+| 방법 | 특징 |
+|---|---|
+| **External Secrets Operator** | AWS Secrets Manager 값을 K8s Secret으로 자동 동기화. ArgoCD GitOps와 궁합 좋음 |
+| **Sealed Secrets** | Secret 암호화 후 Git 커밋 가능. 복호화는 클러스터만 가능 |
+| **HashiCorp Vault** | 엔터프라이즈급 시크릿 관리 |
+| **helm --set** | CI에서 `helm upgrade --set db.password=$SECRET` 방식 |
+
+이 프로젝트는 week4 EKS 구성 시 **External Secrets Operator + AWS Secrets Manager**로 전환 예정.
+
+```
+AWS Secrets Manager
+  └── devopsim/api: { database-url: "..." }
+        ↓ External Secrets Operator
+K8s Secret (자동 생성, Git에 없음)
+        ↓
+Pod
 ```
 
 ---
