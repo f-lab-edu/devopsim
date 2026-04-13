@@ -6,3 +6,11 @@ dist/
 *.log
 .plan/
 .claude/session-log.md
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
