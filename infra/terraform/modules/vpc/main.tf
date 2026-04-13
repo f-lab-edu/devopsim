@@ -123,25 +123,7 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-# VPC Endpoint Security Group — Interface Endpoint에 붙이는 SG
-resource "aws_security_group" "vpc_endpoint" {
-  name        = "${var.name}-vpc-endpoint-sg"
-  description = "Allow HTTPS from VPC for VPC Endpoints"
-  vpc_id      = aws_vpc.this.id
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]   # VPC 내부에서만 허용
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-vpc-endpoint-sg"
-  })
-}
-
-# S3 Gateway Endpoint — 무료, ECR 레이어 pull에 사용
+# S3 Gateway Endpoint — 무료, ECR 이미지 레이어 pull 시 NAT 비용 절감
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.this.id
   service_name      = "com.amazonaws.${data.aws_region.current.id}.s3"
@@ -150,61 +132,5 @@ resource "aws_vpc_endpoint" "s3" {
 
   tags = merge(var.tags, {
     Name = "${var.name}-s3-endpoint"
-  })
-}
-
-# ECR API Endpoint — 이미지 메타데이터 조회
-resource "aws_vpc_endpoint" "ecr_api" {
-  vpc_id              = aws_vpc.this.id
-  service_name        = "com.amazonaws.${data.aws_region.current.id}.ecr.api"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoint.id]
-  private_dns_enabled = true
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-ecr-api-endpoint"
-  })
-}
-
-# ECR DKR Endpoint — 실제 이미지 레이어 pull
-resource "aws_vpc_endpoint" "ecr_dkr" {
-  vpc_id              = aws_vpc.this.id
-  service_name        = "com.amazonaws.${data.aws_region.current.id}.ecr.dkr"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoint.id]
-  private_dns_enabled = true
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-ecr-dkr-endpoint"
-  })
-}
-
-# STS Endpoint — IRSA 토큰 발급
-resource "aws_vpc_endpoint" "sts" {
-  vpc_id              = aws_vpc.this.id
-  service_name        = "com.amazonaws.${data.aws_region.current.id}.sts"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoint.id]
-  private_dns_enabled = true
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-sts-endpoint"
-  })
-}
-
-# CloudWatch Logs Endpoint — 로그 수집
-resource "aws_vpc_endpoint" "logs" {
-  vpc_id              = aws_vpc.this.id
-  service_name        = "com.amazonaws.${data.aws_region.current.id}.logs"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoint.id]
-  private_dns_enabled = true
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-logs-endpoint"
   })
 }
