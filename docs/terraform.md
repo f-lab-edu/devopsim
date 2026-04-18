@@ -5,27 +5,39 @@
 AWS 리전: `us-east-2` (Ohio)  
 Terraform 버전: `>= 1.11.0`  
 AWS Provider: `~> 6.0`  
-State Backend: S3 (`nurihaus-terraform-state/devopsim/terraform.tfstate`)
+State Backend: S3 (`nurihaus-terraform-state/devopsim/prod/terraform.tfstate`)
 
 ---
 
-## 모듈 구조
+## 디렉터리 구조
+
+환경별 디렉터리 분리 방식을 사용한다. `modules/`는 공유, 환경별 설정은 각 디렉터리에서 관리한다.
 
 ```
 infra/terraform/
-  versions.tf        provider, terraform 버전 고정
-  backend.tf         S3 remote state 설정
-  variables.tf       입력 변수 (region, project, VPC, EKS 설정)
-  main.tf            모듈 호출 (vpc, ecr, eks)
-  outputs.tf         출력값 (vpc_id, cluster_name, kubeconfig 명령어 등)
-  modules/
-    vpc/             VPC, 서브넷, 게이트웨이, S3 VPC Endpoint
+  modules/                    공유 모듈 (환경 무관)
+    vpc/                      VPC, 서브넷, 게이트웨이, S3 VPC Endpoint
     eks/
-      main.tf        EKS 클러스터, 노드그룹, IAM Role
-      irsa.tf        OIDC Provider, IRSA 역할들
-      addons.tf      EKS Addon (EBS CSI Driver)
-    ecr/             ECR 리포지토리
+      main.tf                 EKS 클러스터, 노드그룹, IAM Role
+      irsa.tf                 OIDC Provider, IRSA 역할들
+      addons.tf               EKS Addon (EBS CSI Driver)
+    ecr/                      ECR 리포지토리
+  prod/                       프로덕션 환경
+    backend.tf                S3 remote state (key: devopsim/prod/terraform.tfstate)
+    versions.tf               provider, terraform 버전 고정
+    variables.tf              입력 변수 선언 (default 없음)
+    main.tf                   모듈 호출 (source = "../modules/...")
+    outputs.tf                출력값
+    prod.tfvars               실제 값 — .gitignore
+    prod.tfvars.example       템플릿 — 커밋됨
+  # dev/ 환경 추가 시:
+  # dev/
+  #   backend.tf              key: devopsim/dev/terraform.tfstate
+  #   dev.tfvars
+  #   ...
 ```
+
+**환경 추가 방법**: `prod/` 디렉터리를 복사하고 `backend.tf`의 key, `*.tfvars` 값만 바꾸면 된다.
 
 ---
 
@@ -56,8 +68,7 @@ infra/terraform/
 | Gateway (S3, DynamoDB) | 무료 | S3 적용 |
 | Interface (ECR, STS 등) | ~$14/월/엔드포인트 | 미적용 |
 
-Interface Endpoint는 트래픽이 많을 때 NAT 비용 절감 효과가 있지만, 학습 프로젝트 수준에서는 NAT Gateway 데이터 처리 비용이 더 저렴합니다. 트래픽이 늘어나면 추가 검토합니다.
-
+Interface Endpoint는 트래픽이 많을 때 NAT 비용 절감 효과가 있지만, 해당 프로젝트 수준에서는 NAT Gateway 데이터 처리 비용이 더 저렴합니다.
 ---
 
 ### EKS (`modules/eks/`)
@@ -124,17 +135,96 @@ Private Subnet (EKS 노드)
 
 ---
 
+## 변수 관리 (tfvars)
+
+### 구조
+
+```
+infra/terraform/prod/
+  variables.tf          변수 선언 (type + description만, default 없음)
+  prod.tfvars           prod 실제 값 — .gitignore (커밋 안 함)
+  prod.tfvars.example   prod 템플릿 — 커밋됨
+```
+
+`aws_profile`은 예외적으로 `default = null`
+- 로컬에서는 `prod.tfvars`에서 값을 주고 사용
+-  CI(OIDC)에서는 null로 두면 AWS 기본 자격증명 체인을 사용한다.
+
+---
+
+### 변수 적용 우선순위 (낮음 → 높음)
+
+```
+variables.tf default
+  → terraform.tfvars (파일명이 이거면 -var-file 없이 자동 로드)
+    → *.auto.tfvars (알파벳순 자동 로드)
+      → -var-file 플래그
+        → -var 플래그  ← 최고 우선순위
+```
+
+같은 변수가 여러 곳에 정의되면 우선순위가 높은 쪽이 이긴다. 예상치 못한 값이 적용될 때 디버깅 포인트.
+
+---
+
+### 알아야 할 포인트
+
+**Backend는 tfvars로 파라미터화 불가**
+
+```hcl
+# 이건 작동 안 함 — Variables not allowed in backend config
+terraform {
+  backend "s3" {
+    bucket = var.state_bucket  # ERROR
+  }
+}
+```
+
+환경별 backend를 분리하려면 별도 파일로 처리해야 한다:
+
+```bash
+terraform init -backend-config=backend.prod.hcl
+```
+
+**tfvars는 State에 저장되지 않는다**
+
+`terraform apply` 시 tfvars는 입력값으로만 쓰이고, `.tfstate`에는 리소스 결과값만 저장된다. tfvars를 잃어도 인프라는 살아있지만, 다음 `plan` 시 올바른 값을 넣지 않으면 의도치 않은 변경이 감지될 수 있다.
+
+**sensitive 변수와 State 암호화**
+
+```hcl
+variable "db_password" {
+  type      = string
+  sensitive = true  # plan/apply 출력에서 마스킹
+}
+```
+
+`sensitive = true`는 CLI 출력만 가린다. `.tfstate`에는 평문으로 저장된다. S3 backend에 SSE(서버 사이드 암호화)가 필요한 이유다. 비밀번호 같은 민감한 값은 tfvars가 아니라 환경변수(`TF_VAR_db_password`)나 Secrets Manager에서 주입하는 것이 표준이다.
+
+**CI에서는 -var-file 대신 환경변수**
+
+```bash
+# GitHub Actions: secret → TF_VAR_* 환경변수로 주입
+TF_VAR_db_password=${{ secrets.DB_PASSWORD }} terraform apply -var-file=prod.tfvars
+```
+
+민감하지 않은 설정값은 tfvars, 시크릿은 환경변수로 분리하는 것이 일반적인 패턴이다.
+
+---
+
 ## 배포 명령어
 
 ```bash
-# 초기화
+# prod 환경 디렉터리로 이동
+cd infra/terraform/prod
+
+# 초기화 (처음 또는 모듈/백엔드 변경 후)
 terraform init
 
 # 변경사항 미리보기
-terraform plan
+terraform plan -var-file=prod.tfvars
 
 # 배포 (~15-20분)
-terraform apply
+terraform apply -var-file=prod.tfvars
 
 # kubeconfig 설정
 aws eks update-kubeconfig \
@@ -147,7 +237,7 @@ kubectl get nodes
 kubectl get pods -A
 
 # 삭제
-terraform destroy
+terraform destroy -var-file=prod.tfvars
 ```
 
 ---
@@ -164,6 +254,108 @@ terraform destroy
 | **합계** | **~$164/월 + 데이터 처리량** |
 
 Interface VPC Endpoint 제거로 월 ~$57 절감.
+
+---
+
+## 시크릿 관리 (SSM Parameter Store)
+
+### 왜 SSM인가
+
+Terraform은 시크릿 값을 `.tfstate`에 평문으로 저장한다. `sensitive = true`는 CLI 출력만 가릴 뿐이다. DB 패스워드 같은 값을 tfvars나 `TF_VAR_*`로 주입하면 결국 state 파일에 남는다.
+
+SSM Parameter Store를 쓰면 Terraform이 시크릿 값을 아예 모른 채로 리소스를 구성할 수 있다.
+
+### 네이밍 컨벤션
+
+```
+/<project>/<environment>/<category>/<key>
+/devopsim/prod/db/password
+/devopsim/prod/db/host
+/devopsim/prod/api/secret_key
+```
+
+### 패턴 1: Terraform이 SSM에서 직접 읽기
+
+시크릿이 SSM에 이미 등록되어 있을 때. Terraform이 apply 시점에 직접 값을 가져온다. tfvars, 환경변수 어디에도 실제 값이 지나가지 않는다.
+
+```hcl
+data "aws_ssm_parameter" "db_password" {
+  name            = "/devopsim/prod/db/password"
+  with_decryption = true
+}
+
+resource "aws_db_instance" "main" {
+  password = data.aws_ssm_parameter.db_password.value
+}
+```
+
+이 패턴을 사용하려면 Terraform을 실행하는 IAM Role(CI의 OIDC Role)에 권한이 필요하다:
+```json
+{
+  "Action": ["ssm:GetParameter", "ssm:GetParameters"],
+  "Resource": "arn:aws:ssm:us-east-2:893286712531:parameter/devopsim/prod/*"
+}
+```
+
+### 패턴 2: Terraform은 경로만 만들고, 값은 별도 등록
+
+Terraform이 SSM 파라미터 리소스 자체만 생성하고 실제 값은 운영자가 별도로 넣는다.
+
+```hcl
+resource "aws_ssm_parameter" "db_password" {
+  name  = "/devopsim/prod/db/password"
+  type  = "SecureString"
+  value = "CHANGE_ME"   # 초기 placeholder — 배포 후 콘솔/CLI로 교체
+
+  lifecycle {
+    ignore_changes = [value]   # Terraform이 값 변경을 추적하지 않음
+  }
+}
+```
+
+```bash
+# 실제 값 등록 (1회)
+aws ssm put-parameter \
+  --name "/devopsim/prod/db/password" \
+  --value "실제패스워드" \
+  --type SecureString \
+  --overwrite \
+  --profile devopsim
+```
+
+### Kubernetes에서 SSM 값 사용 — External Secrets Operator
+
+EKS 파드가 SSM 값을 쓸 때는 직접 읽는 것이 아니라 External Secrets Operator가 SSM에서 읽어 Kubernetes Secret으로 동기화한다. `external-secrets-role` IRSA가 이미 준비되어 있다.
+
+```
+SSM Parameter Store
+  ↑ (읽기, IRSA)
+External Secrets Operator (EKS 내부)
+  ↓ (생성/갱신)
+Kubernetes Secret
+  ↓ (마운트)
+Pod
+```
+
+```yaml
+# ExternalSecret CRD 예시
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: db-credentials
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-ssm
+    kind: ClusterSecretStore
+  target:
+    name: db-secret          # 생성될 Kubernetes Secret 이름
+  data:
+    - secretKey: password    # Kubernetes Secret의 key
+      remoteRef:
+        key: /devopsim/prod/db/password   # SSM parameter 경로
+```
 
 ---
 
