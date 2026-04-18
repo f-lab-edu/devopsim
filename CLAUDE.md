@@ -78,7 +78,7 @@ helm install api infra/helm/api -f infra/helm/api/values-production.yaml
 
 ```bash
 cd infra/terraform
-terraform apply   # VPC + EKS + ECR
+terraform apply -var-file=prod.tfvars   # VPC + EKS + ECR
 aws eks update-kubeconfig --region us-east-2 --name devopsim-prod-cluster --profile devopsim
 ```
 

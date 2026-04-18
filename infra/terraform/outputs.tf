@@ -25,7 +25,7 @@ output "eks_cluster_endpoint" {
 
 output "eks_kubeconfig_command" {
   description = "Command to update kubeconfig"
-  value       = "aws eks update-kubeconfig --region ${var.region} --name ${module.eks.cluster_name} --profile ${var.aws_profile}"
+  value       = "aws eks update-kubeconfig --region ${var.region} --name ${module.eks.cluster_name}${var.aws_profile != null ? " --profile ${var.aws_profile}" : ""}"
 }
 
 output "ecr_repository_urls" {

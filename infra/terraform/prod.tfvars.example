@@ -1,0 +1,18 @@
+# Production environment configuration template
+# Copy to prod.tfvars and fill in values
+# Usage: terraform apply -var-file=prod.tfvars
+
+region      = "us-east-2"
+aws_profile = "devopsim"   # local only — omit or set null in CI
+environment = "prod"
+
+# VPC
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-2a", "us-east-2b"]
+
+# EKS
+eks_cluster_version    = "1.35"
+eks_node_instance_type = "t3.medium"
+eks_node_desired_size  = 2
+eks_node_min_size      = 1
+eks_node_max_size      = 3
