@@ -25,6 +25,15 @@ module "ecr" {
   tags         = local.tags
 }
 
+module "iam" {
+  source = "../modules/iam"
+
+  name                = local.name
+  github_repo         = "f-lab-edu/devopsim"
+  ecr_repository_arns = values(module.ecr.repository_arns)
+  tags                = local.tags
+}
+
 module "eks" {
   source = "../modules/eks"
 
