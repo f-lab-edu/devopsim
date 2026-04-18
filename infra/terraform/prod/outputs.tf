@@ -33,6 +33,11 @@ output "ecr_repository_urls" {
   value       = module.ecr.repository_urls
 }
 
+output "github_actions_role_arn" {
+  description = "GitHub Actions IAM Role ARN — set as AWS_ROLE_ARN in GitHub repository variables"
+  value       = module.iam.github_actions_role_arn
+}
+
 output "alb_controller_role_arn" {
   description = "ALB Controller IAM Role ARN (for Helm install)"
   value       = module.eks.alb_controller_role_arn
