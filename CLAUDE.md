@@ -77,7 +77,7 @@ helm install api infra/helm/api -f infra/helm/api/values-production.yaml
 - **State**: s3://nurihaus-terraform-state/devopsim/terraform.tfstate
 
 ```bash
-cd infra/terraform
+cd infra/terraform/prod
 terraform apply -var-file=prod.tfvars   # VPC + EKS + ECR
 aws eks update-kubeconfig --region us-east-2 --name devopsim-prod-cluster --profile devopsim
 ```

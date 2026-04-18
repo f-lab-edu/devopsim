@@ -9,7 +9,7 @@ locals {
 }
 
 module "vpc" {
-  source = "./modules/vpc"
+  source = "../modules/vpc"
 
   name               = local.name
   vpc_cidr           = var.vpc_cidr
@@ -18,7 +18,7 @@ module "vpc" {
 }
 
 module "ecr" {
-  source = "./modules/ecr"
+  source = "../modules/ecr"
 
   project      = var.project
   repositories = ["api"]
@@ -26,7 +26,7 @@ module "ecr" {
 }
 
 module "eks" {
-  source = "./modules/eks"
+  source = "../modules/eks"
 
   name               = local.name
   cluster_version    = var.eks_cluster_version
