@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/f-lab-edu/devopsim/compare/api-v0.1.1...api-v0.1.2) (2026-04-20)
+
+
+### Bug Fixes
+
+* add APP_SERVICE build arg to Dockerfile and ci.yaml ([cfff7f9](https://github.com/f-lab-edu/devopsim/commit/cfff7f969aef0739d154e66c3369096b62d4afc9))
+
 ## [0.1.1](https://github.com/f-lab-edu/devopsim/compare/api-v0.1.0...api-v0.1.1) (2026-04-20)
 
 
