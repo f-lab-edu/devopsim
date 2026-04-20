@@ -3,7 +3,7 @@ import type { HealthResponse } from '@devopsim/shared'
 
 export default async function healthRoute(app: FastifyInstance) {
   app.get<{ Reply: HealthResponse }>('/health', async () => {
-    return { status: 'ok' }
+    return { status: 'ok', uptime: process.uptime() }
   })
 
   app.get('/ready', async (_req, reply) => {
