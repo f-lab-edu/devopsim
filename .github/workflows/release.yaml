@@ -30,6 +30,7 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          token: ${{ secrets.GH_PAT }}
 
   # ── Job 2: ECR retag + Helm values 업데이트 ──────────────────────────
   # tag push(api-v1.2.3) 시 실행
