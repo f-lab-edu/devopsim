@@ -2,7 +2,7 @@ name: Release
 run-name: >-
   ${{ startsWith(github.ref, 'refs/tags/')
     && format('Release — {0}', github.ref_name)
-    || format('release-please — {0}', github.event.head_commit.message) }}
+    || 'release-please' }}
 
 on:
   # 1. main push → release-please job (Release PR 생성/업데이트)
