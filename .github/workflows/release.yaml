@@ -99,10 +99,17 @@ jobs:
             exit 1
           fi
 
-          aws ecr put-image \
+          OUTPUT=$(aws ecr put-image \
             --repository-name "$REPO" \
             --image-tag "$VERSION" \
-            --image-manifest "$MANIFEST"
+            --image-manifest "$MANIFEST" 2>&1) || {
+            if echo "$OUTPUT" | grep -q "ImageAlreadyExistsException"; then
+              echo "Tag $VERSION already exists in ECR — skipping"
+            else
+              echo "$OUTPUT"
+              exit 1
+            fi
+          }
 
           echo "Retagged $REPO:$SHA → $REPO:$VERSION"
 
