@@ -4,6 +4,7 @@ import { AppError } from './errors'
 import dbPlugin from './plugins/db'
 import healthRoute from './routes/health'
 import itemsRoute from './routes/items'
+import metricsRoute from './routes/metrics'
 import { pgItemRepository } from './repositories/items'
 import { itemService } from './services/items'
 
@@ -34,6 +35,7 @@ export function buildApp(opts: { logger?: boolean } = {}) {
   })
 
   app.register(healthRoute)
+  app.register(metricsRoute)
 
   return app
 }
