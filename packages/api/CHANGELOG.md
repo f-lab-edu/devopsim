@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.1.2...api-v0.2.0) (2026-04-20)
+
+
+### Features
+
+* add /metrics endpoint with HTTP and DB pool metrics ([be978b5](https://github.com/f-lab-edu/devopsim/commit/be978b5cfa52d2522027ee7dd218d098c682924e))
+
 ## [0.1.2](https://github.com/f-lab-edu/devopsim/compare/api-v0.1.1...api-v0.1.2) (2026-04-20)
 
 
