@@ -1,0 +1,79 @@
+{
+  "updatedAt": "2026-04-21",
+  "currentBranch": "main",
+
+  "completed": [
+    "Week1: API + Docker (PR #1 merged)",
+    "Week2: Kubernetes 기본 배포 minikube (PR #2 merged)",
+    "Week3: Helm Chart api/db 분리 (PR #3 merged)",
+    "Week4: Terraform VPC + EKS + ECR (PR #4 merged)",
+    "Week5-CI/CD: GitHub Actions + release-please (PR #5 merged)"
+  ],
+
+  "infrastructure": {
+    "region": "us-east-2",
+    "cluster": "devopsim-prod-cluster",
+    "nodes": "t3.medium x2",
+    "ecr": "893286712531.dkr.ecr.us-east-2.amazonaws.com/devopsim/api",
+    "stateBackend": "s3://nurihaus-terraform-state/devopsim/prod/terraform.tfstate",
+    "terraformDir": "infra/terraform/prod"
+  },
+
+  "cicd": {
+    "githubVariables": [
+      "AWS_ROLE_ARN",
+      "ECR_REGISTRY",
+      "AWS_REGION"
+    ],
+    "workflows": {
+      "ci.yaml": "PR/main push → detect → test(postgres) → build(:sha) → ECR push",
+      "release.yaml": "Job1: release-please(Release PR 생성), Job2: CI완료 후 태그감지 → ECR retag → values 업데이트 → GitHub Release"
+    },
+    "releaseTagFormat": "api-v1.2.3 (release-please 자동 생성)"
+  },
+
+  "nextSteps": [
+    {
+      "step": 1,
+      "title": "FluxCD bootstrap",
+      "description": "flux bootstrap github으로 EKS 클러스터에 FluxCD 설치",
+      "details": [
+        "flux v2.8.5 CLI 설치 완료 (~/.bin/flux)",
+        "bootstrap 대상 레포: f-lab-edu/devopsim",
+        "매니페스트 경로: infra/flux/clusters/production",
+        "GitHub Token (PAT) 필요: repo 권한",
+        "flux bootstrap github --owner=f-lab-edu --repository=devopsim --branch=main --path=infra/flux/clusters/production"
+      ]
+    },
+    {
+      "step": 2,
+      "title": "FluxCD HelmRelease 구성",
+      "description": "기존 Helm Chart를 FluxCD HelmRelease CRD로 선언",
+      "details": [
+        "GitRepository source 설정 (이 레포 참조)",
+        "HelmRelease for db (infra/helm/db)",
+        "HelmRelease for api (infra/helm/api, values-production.yaml 참조)",
+        "Kubernetes Secret 생성 (DB password 등)"
+      ]
+    },
+    {
+      "step": 3,
+      "title": "전체 파이프라인 검증",
+      "description": "feat PR → main 머지 → CI 빌드 → Release PR → 배포까지 end-to-end 확인",
+      "details": [
+        "ci.yaml 실제 동작 확인 (test + ECR push)",
+        "release-please Release PR 자동 생성 확인",
+        "Release PR 머지 → ECR retag → values 업데이트 확인",
+        "FluxCD가 values 변경 감지 → EKS 배포 확인",
+        "/api/version 엔드포인트 version/commit/buildDate 확인"
+      ]
+    }
+  ],
+
+  "notes": [
+    "flux CLI는 ~/bin/flux에 설치됨 — PATH에 추가 필요: export PATH=$HOME/bin:$PATH",
+    "bootstrap 전 GITHUB_TOKEN 환경변수 필요",
+    "현재 helm install로 올라간 api/db는 FluxCD bootstrap 후 HelmRelease로 이관",
+    "FluxCD는 Image Automation 사용 안 함 — CI가 values-production.yaml 직접 업데이트"
+  ]
+}
