@@ -17,7 +17,7 @@ export default async function healthRoute(app: FastifyInstance) {
 
   app.get('/api/version', async () => {
     return {
-      service: 'api',
+      service: process.env.APP_SERVICE ?? 'api',
       version: process.env.APP_VERSION ?? 'dev',
       commit: process.env.APP_COMMIT ?? 'unknown',
       buildDate: process.env.APP_BUILD_DATE ?? 'unknown',
