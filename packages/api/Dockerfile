@@ -56,10 +56,12 @@ COPY --from=builder --chown=node:node /app/packages/api/migrations ./packages/ap
 ARG BUILD_VERSION=dev
 ARG BUILD_COMMIT=unknown
 ARG BUILD_DATE=unknown
+ARG BUILD_SERVICE=api
 
 ENV APP_VERSION=$BUILD_VERSION
 ENV APP_COMMIT=$BUILD_COMMIT
 ENV APP_BUILD_DATE=$BUILD_DATE
+ENV APP_SERVICE=$BUILD_SERVICE
 
 USER node
 
