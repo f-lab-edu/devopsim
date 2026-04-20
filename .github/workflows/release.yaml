@@ -131,8 +131,8 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
           git add "infra/helm/$SERVICE/values-production.yaml"
+          git pull --rebase origin main
           git commit -m "chore: release $SERVICE v$VERSION [skip ci]"
           git push origin main
 
