@@ -53,6 +53,14 @@ COPY --from=builder --chown=node:node /app/packages/shared/dist ./packages/share
 # 마이그레이션 파일
 COPY --from=builder --chown=node:node /app/packages/api/migrations ./packages/api/migrations
 
+ARG BUILD_VERSION=dev
+ARG BUILD_COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+ENV APP_VERSION=$BUILD_VERSION
+ENV APP_COMMIT=$BUILD_COMMIT
+ENV APP_BUILD_DATE=$BUILD_DATE
+
 USER node
 
 EXPOSE 3000
