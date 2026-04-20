@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  # 1. main push → release-please job (Release PR 생성/업데이트)
+  push:
+    branches: [main]
+  # 2. CI 완료 → deploy job (ECR retag(앱 버전으로) + values 업데이트)
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+env:
+  ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  # 1. Release PR 생성/업데이트
+  # main에 커밋이 쌓일 때마다 release-please가 Release PR을 만들거나 업데이트 -> merge -> tag생성 -> deploy job
+  release-please:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # 2. ECR retag / Helm values 업데이트 / GitHub Release
+  # CI가 완료된 커밋에 release tag(api-v1.2.3)가 있을 때만 실행
+  deploy:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # 2-1. release tag 존재 여부 확인 / 일반 feat 머지는 tag가 없으므로 스킵
+      - name: Check for release tag
+        id: tag
+        run: |
+          git fetch --tags
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          TAG=$(git tag --points-at "$SHA" \
+            | grep -E '^[a-z]+-v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | head -1)
+
+          if [ -z "$TAG" ]; then
+            echo "No release tag for $SHA — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            SERVICE=$(echo "$TAG" | sed 's/-v[0-9].*//')
+            VERSION=$(echo "$TAG" | sed 's/.*-v//')
+            echo "skip=false"       >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+            echo "service=$SERVICE" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "sha=$SHA"         >> "$GITHUB_OUTPUT"
+            echo "Found: $TAG (service=$SERVICE version=$VERSION sha=$SHA)"
+          fi
+
+      # 2-2. AWS 인증
+      - name: Configure AWS credentials (OIDC)
+        if: steps.tag.outputs.skip == 'false'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: steps.tag.outputs.skip == 'false'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 2-3. ECR retag (:sha → :version)
+      - name: Retag ECR image
+        if: steps.tag.outputs.skip == 'false'
+        run: |
+          SERVICE="${{ steps.tag.outputs.service }}"
+          VERSION="${{ steps.tag.outputs.version }}"
+          SHA="${{ steps.tag.outputs.sha }}"
+          REPO="devopsim/$SERVICE"
+
+          MANIFEST=$(aws ecr batch-get-image \
+            --repository-name "$REPO" \
+            --image-ids imageTag="$SHA" \
+            --query 'images[0].imageManifest' \
+            --output text 2>/dev/null)
+
+          if [ -z "$MANIFEST" ] || [ "$MANIFEST" = "None" ]; then
+            echo "Error: $REPO:$SHA not found in ECR"
+            exit 1
+          fi
+
+          aws ecr put-image \
+            --repository-name "$REPO" \
+            --image-tag "$VERSION" \
+            --image-manifest "$MANIFEST"
+
+          echo "Retagged $REPO:$SHA → $REPO:$VERSION"
+
+      # 2-4. values-production.yaml 업데이트
+      - name: Update Helm values
+        if: steps.tag.outputs.skip == 'false'
+        run: |
+          SERVICE="${{ steps.tag.outputs.service }}"
+          VERSION="${{ steps.tag.outputs.version }}"
+          VALUES="infra/helm/$SERVICE/values-production.yaml"
+
+          if [ ! -f "$VALUES" ]; then
+            echo "Error: $VALUES not found"
+            exit 1
+          fi
+
+          sed -i "s/^  tag: .*/  tag: \"$VERSION\"/" "$VALUES"
+          echo "Updated $VALUES → tag: $VERSION"
+
+      # 2-5. Git 커밋 + Push
+      - name: Commit and push
+        if: steps.tag.outputs.skip == 'false'
+        run: |
+          SERVICE="${{ steps.tag.outputs.service }}"
+          VERSION="${{ steps.tag.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add "infra/helm/$SERVICE/values-production.yaml"
+          git commit -m "chore: release $SERVICE v$VERSION [skip ci]"
+          git push origin main
+
+      # 2-6. GitHub Release 생성
+      - name: Create GitHub Release
+        if: steps.tag.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SERVICE="${{ steps.tag.outputs.service }}"
+          VERSION="${{ steps.tag.outputs.version }}"
+          TAG="${{ steps.tag.outputs.tag }}"
+          IMAGE="${{ env.ECR_REGISTRY }}/devopsim/$SERVICE:$VERSION"
+
+          gh release create "$TAG" \
+            --title "$SERVICE v$VERSION" \
+            --notes "**ECR 이미지**: \`$IMAGE\`" \
+            --generate-notes
