@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/f-lab-edu/devopsim/compare/api-v0.1.0...api-v0.1.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* add APP_SERVICE env var to version endpoint ([89ab4b2](https://github.com/f-lab-edu/devopsim/commit/89ab4b2cc99eed671b0fe387e6e29a0982357df6))
+
 ## [0.1.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.0.1...api-v0.1.0) (2026-04-20)
 
 
