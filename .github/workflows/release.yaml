@@ -1,15 +1,15 @@
 name: Release
-run-name: "Release — ${{ github.event.head_commit.message || github.event.workflow_run.display_title }}"
+run-name: >-
+  ${{ startsWith(github.ref, 'refs/tags/')
+    && format('Release — {0}', github.ref_name)
+    || format('release-please — {0}', github.event.head_commit.message) }}
 
 on:
   # 1. main push → release-please job (Release PR 생성/업데이트)
   push:
     branches: [main]
-  # 2. CI 완료 → deploy job (ECR retag(앱 버전으로) + values 업데이트)
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+    tags:
+      - '*-v[0-9]*.[0-9]*.[0-9]*'
 
 permissions:
   contents: write
@@ -21,10 +21,9 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
 
 jobs:
-  # 1. Release PR 생성/업데이트
-  # main에 커밋이 쌓일 때마다 release-please가 Release PR을 만들거나 업데이트 -> merge -> tag생성 -> deploy job
+  # ── Job 1: Release PR 생성/업데이트 ──────────────────────────────────
   release-please:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')
     runs-on: ubuntu-latest
     steps:
       - uses: googleapis/release-please-action@v4
@@ -32,10 +31,11 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # 2. ECR retag / Helm values 업데이트 / GitHub Release
-  # CI가 완료된 커밋에 release tag(api-v1.2.3)가 있을 때만 실행
+  # ── Job 2: ECR retag + Helm values 업데이트 ──────────────────────────
+  # tag push(api-v1.2.3) 시 실행
+  # 레이스 컨디션: CI 빌드보다 태그 생성이 빠를 수 있으므로 이미지 대기 루프
   deploy:
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
 
     steps:
@@ -44,61 +44,60 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      # 2-1. release tag 존재 여부 확인 / 일반 feat 머지는 tag가 없으므로 스킵
-      - name: Check for release tag
+      # 태그에서 SERVICE, VERSION, SHA 파싱
+      - name: Parse tag
         id: tag
         run: |
-          git fetch --tags
-          SHA="${{ github.event.workflow_run.head_sha }}"
-          TAG=$(git tag --points-at "$SHA" \
-            | grep -E '^[a-z]+-v[0-9]+\.[0-9]+\.[0-9]+$' \
-            | head -1)
+          TAG="${{ github.ref_name }}"
+          SERVICE=$(echo "$TAG" | sed 's/-v[0-9].*//')
+          VERSION=$(echo "$TAG" | sed 's/.*-v//')
+          SHA=$(git rev-list -n 1 "$TAG")
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+          echo "service=$SERVICE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA"         >> "$GITHUB_OUTPUT"
+          echo "Parsed: service=$SERVICE version=$VERSION sha=$SHA"
 
-          if [ -z "$TAG" ]; then
-            echo "No release tag for $SHA — skipping"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            SERVICE=$(echo "$TAG" | sed 's/-v[0-9].*//')
-            VERSION=$(echo "$TAG" | sed 's/.*-v//')
-            echo "skip=false"       >> "$GITHUB_OUTPUT"
-            echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
-            echo "service=$SERVICE" >> "$GITHUB_OUTPUT"
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-            echo "sha=$SHA"         >> "$GITHUB_OUTPUT"
-            echo "Found: $TAG (service=$SERVICE version=$VERSION sha=$SHA)"
-          fi
-
-      # 2-2. AWS 인증
+      # AWS 인증
       - name: Configure AWS credentials (OIDC)
-        if: steps.tag.outputs.skip == 'false'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        if: steps.tag.outputs.skip == 'false'
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 2-3. ECR retag (:sha → :version)
-      - name: Retag ECR image
-        if: steps.tag.outputs.skip == 'false'
+      # ECR 이미지 대기 + retag (:sha → :version)
+      # 태그 생성 시점에 CI 빌드가 아직 완료 안 됐을 수 있으므로 최대 10분 대기
+      - name: Wait for image and retag
         run: |
           SERVICE="${{ steps.tag.outputs.service }}"
           VERSION="${{ steps.tag.outputs.version }}"
           SHA="${{ steps.tag.outputs.sha }}"
           REPO="devopsim/$SERVICE"
 
-          MANIFEST=$(aws ecr batch-get-image \
-            --repository-name "$REPO" \
-            --image-ids imageTag="$SHA" \
-            --query 'images[0].imageManifest' \
-            --output text 2>/dev/null)
+          echo "Waiting for $REPO:$SHA to appear in ECR..."
+          for i in $(seq 1 20); do
+            MANIFEST=$(aws ecr batch-get-image \
+              --repository-name "$REPO" \
+              --image-ids imageTag="$SHA" \
+              --query 'images[0].imageManifest' \
+              --output text 2>/dev/null)
 
-          if [ -z "$MANIFEST" ] || [ "$MANIFEST" = "None" ]; then
-            echo "Error: $REPO:$SHA not found in ECR"
-            exit 1
-          fi
+            if [ -n "$MANIFEST" ] && [ "$MANIFEST" != "None" ]; then
+              echo "Image found on attempt $i"
+              break
+            fi
+
+            if [ "$i" -eq 20 ]; then
+              echo "Error: $REPO:$SHA not found after 20 attempts (10min)"
+              exit 1
+            fi
+
+            echo "Attempt $i/20 — not ready yet, waiting 30s..."
+            sleep 30
+          done
 
           OUTPUT=$(aws ecr put-image \
             --repository-name "$REPO" \
@@ -114,19 +113,13 @@ jobs:
 
           echo "Retagged $REPO:$SHA → $REPO:$VERSION"
 
-      # 2-4. values-production.yaml + Chart.yaml appVersion 업데이트
+      # values-production.yaml + Chart.yaml appVersion 업데이트
       - name: Update Helm values
-        if: steps.tag.outputs.skip == 'false'
         run: |
           SERVICE="${{ steps.tag.outputs.service }}"
           VERSION="${{ steps.tag.outputs.version }}"
           VALUES="infra/helm/$SERVICE/values-production.yaml"
           CHART="infra/helm/$SERVICE/Chart.yaml"
-
-          if [ ! -f "$VALUES" ]; then
-            echo "Error: $VALUES not found"
-            exit 1
-          fi
 
           sed -i "s/^  tag: .*/  tag: \"$VERSION\"/" "$VALUES"
           echo "Updated $VALUES → tag: $VERSION"
@@ -134,24 +127,22 @@ jobs:
           sed -i "s/^appVersion: .*/appVersion: \"$VERSION\"/" "$CHART"
           echo "Updated $CHART → appVersion: $VERSION"
 
-      # 2-5. Git 커밋 + Push
+      # Git 커밋 + Push → FluxCD 배포 트리거
       - name: Commit and push
-        if: steps.tag.outputs.skip == 'false'
         run: |
           SERVICE="${{ steps.tag.outputs.service }}"
           VERSION="${{ steps.tag.outputs.version }}"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "infra/helm/$SERVICE/values-production.yaml"
+          git add "infra/helm/$SERVICE/values-production.yaml" \
+                  "infra/helm/$SERVICE/Chart.yaml"
           git commit -m "chore: release $SERVICE v$VERSION [skip ci]"
           git pull --rebase origin main
           git push origin main
 
-      # 2-6. GitHub Release에 ECR 이미지 정보 추가
-      # release-please가 이미 Release를 생성하므로 edit으로 내용만 추가
+      # GitHub Release에 ECR 이미지 정보 추가 (release-please가 이미 생성)
       - name: Update GitHub Release
-        if: steps.tag.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
