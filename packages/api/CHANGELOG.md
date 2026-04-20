@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/f-lab-edu/devopsim/compare/api-v0.2.1...api-v0.2.2) (2026-04-20)
+
+
+### Bug Fixes
+
+* return integer uptime in health endpoint ([2607900](https://github.com/f-lab-edu/devopsim/commit/2607900fdde6aaf73d4a3ace89751bd4fe295c52))
+* use Math.round for uptime ([b6c9862](https://github.com/f-lab-edu/devopsim/commit/b6c98625972f0e7be62465baf82d31dd1598dd29))
+
 ## [0.2.1](https://github.com/f-lab-edu/devopsim/compare/api-v0.2.0...api-v0.2.1) (2026-04-20)
 
 
