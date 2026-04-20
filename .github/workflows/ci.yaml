@@ -119,5 +119,6 @@ jobs:
             BUILD_VERSION=${{ steps.meta.outputs.version }}
             BUILD_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ steps.meta.outputs.date }}
+            BUILD_SERVICE=api
           cache-from: type=gha
           cache-to: type=gha,mode=max
