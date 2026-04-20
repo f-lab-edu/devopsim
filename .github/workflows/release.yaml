@@ -150,5 +150,6 @@ jobs:
           TAG="${{ steps.tag.outputs.tag }}"
           IMAGE="${{ env.ECR_REGISTRY }}/devopsim/${{ steps.tag.outputs.service }}:${{ steps.tag.outputs.version }}"
 
-          gh release edit "$TAG" \
-            --notes-append $'\n---\n**ECR 이미지**: `'"$IMAGE"'`'
+          CURRENT=$(gh release view "$TAG" --json body --jq '.body')
+          NEW_NOTES="${CURRENT}"$'\n\n---\n**ECR 이미지**: `'"$IMAGE"'`'
+          gh release edit "$TAG" --notes "$NEW_NOTES"
