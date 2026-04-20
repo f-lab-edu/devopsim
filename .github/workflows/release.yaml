@@ -143,18 +143,15 @@ jobs:
           git pull --rebase origin main
           git push origin main
 
-      # 2-6. GitHub Release 생성
-      - name: Create GitHub Release
+      # 2-6. GitHub Release에 ECR 이미지 정보 추가
+      # release-please가 이미 Release를 생성하므로 edit으로 내용만 추가
+      - name: Update GitHub Release
         if: steps.tag.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          SERVICE="${{ steps.tag.outputs.service }}"
-          VERSION="${{ steps.tag.outputs.version }}"
           TAG="${{ steps.tag.outputs.tag }}"
-          IMAGE="${{ env.ECR_REGISTRY }}/devopsim/$SERVICE:$VERSION"
+          IMAGE="${{ env.ECR_REGISTRY }}/devopsim/${{ steps.tag.outputs.service }}:${{ steps.tag.outputs.version }}"
 
-          gh release create "$TAG" \
-            --title "$SERVICE v$VERSION" \
-            --notes "**ECR 이미지**: \`$IMAGE\`" \
-            --generate-notes
+          gh release edit "$TAG" \
+            --notes-append $'\n---\n**ECR 이미지**: `'"$IMAGE"'`'
