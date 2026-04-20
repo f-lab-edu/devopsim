@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/f-lab-edu/devopsim/compare/api-v0.2.0...api-v0.2.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* add uptime to health endpoint ([5b608ff](https://github.com/f-lab-edu/devopsim/commit/5b608ffa4bc549edbdd2c283ac6c918d7c252c99))
+
 ## [0.2.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.1.2...api-v0.2.0) (2026-04-20)
 
 
