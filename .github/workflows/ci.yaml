@@ -82,7 +82,7 @@ jobs:
   build:
     needs: [detect, test]
     if: |
-      always() &&
+      !failure() &&
       github.event_name == 'push' &&
       needs.detect.outputs.api == 'true' &&
       (needs.test.result == 'success' || needs.test.result == 'skipped')
