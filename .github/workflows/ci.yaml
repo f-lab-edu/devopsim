@@ -32,9 +32,12 @@ jobs:
               - 'packages/shared/**'
 
   # 2. 테스트
+  # release-please 커밋(package.json bump + CHANGELOG)은 코드 변경이 없으므로 test 스킵
   test:
     needs: detect
-    if: needs.detect.outputs.api == 'true'
+    if: |
+      needs.detect.outputs.api == 'true' &&
+      !startsWith(github.event.head_commit.message, 'chore(main): release')
     runs-on: ubuntu-latest
 
     services:
@@ -79,8 +82,10 @@ jobs:
   build:
     needs: [detect, test]
     if: |
+      always() &&
       github.event_name == 'push' &&
-      needs.detect.outputs.api == 'true'
+      needs.detect.outputs.api == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       id-token: write # OIDC 토큰 발급

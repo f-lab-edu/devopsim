@@ -1,4 +1,5 @@
 name: Release
+run-name: "Release — ${{ github.event.head_commit.message || github.event.workflow_run.display_title }}"
 
 on:
   # 1. main push → release-please job (Release PR 생성/업데이트)
@@ -113,13 +114,14 @@ jobs:
 
           echo "Retagged $REPO:$SHA → $REPO:$VERSION"
 
-      # 2-4. values-production.yaml 업데이트
+      # 2-4. values-production.yaml + Chart.yaml appVersion 업데이트
       - name: Update Helm values
         if: steps.tag.outputs.skip == 'false'
         run: |
           SERVICE="${{ steps.tag.outputs.service }}"
           VERSION="${{ steps.tag.outputs.version }}"
           VALUES="infra/helm/$SERVICE/values-production.yaml"
+          CHART="infra/helm/$SERVICE/Chart.yaml"
 
           if [ ! -f "$VALUES" ]; then
             echo "Error: $VALUES not found"
@@ -128,6 +130,9 @@ jobs:
 
           sed -i "s/^  tag: .*/  tag: \"$VERSION\"/" "$VALUES"
           echo "Updated $VALUES → tag: $VERSION"
+
+          sed -i "s/^appVersion: .*/appVersion: \"$VERSION\"/" "$CHART"
+          echo "Updated $CHART → appVersion: $VERSION"
 
       # 2-5. Git 커밋 + Push
       - name: Commit and push
