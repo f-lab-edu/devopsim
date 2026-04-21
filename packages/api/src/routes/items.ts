@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import type { itemService } from '../services/items'
-import { createItemSchema, updateItemSchema } from './schemas/items'
+import { getItemsSchema, createItemSchema, updateItemSchema } from './schemas/items'
 
 type ItemService = ReturnType<typeof itemService>
 
@@ -10,9 +10,13 @@ export default async function itemsRoute(
 ) {
   const { service } = opts
 
-  app.get('/items', async () => {
-    return service.getAll()
-  })
+  app.get<{ Querystring: { page: number; limit: number } }>(
+    '/items',
+    { schema: getItemsSchema },
+    async (req) => {
+      return service.getAll(req.query)
+    }
+  )
 
   app.get<{ Params: { id: string } }>('/items/:id', async (req) => {
     return service.getOne(Number(req.params.id))
