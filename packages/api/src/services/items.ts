@@ -1,10 +1,10 @@
-import type { ItemRepository, CreateItemDto, UpdateItemDto } from '../domain/item'
+import type { ItemRepository, CreateItemDto, UpdateItemDto, PaginationParams } from '../domain/item'
 import { AppError } from '../errors'
 
 export function itemService(repo: ItemRepository) {
   return {
-    getAll() {
-      return repo.findAll()
+    getAll(params: PaginationParams) {
+      return repo.findAll(params)
     },
 
     async getOne(id: number) {

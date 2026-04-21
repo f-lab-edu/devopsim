@@ -1,13 +1,21 @@
 import type { Pool } from 'pg'
-import type { Item, ItemRepository } from '../domain/item'
+import type { Item, ItemRepository, PaginationParams } from '../domain/item'
 
 export function pgItemRepository(db: Pool): ItemRepository {
   return {
-    async findAll() {
-      const { rows } = await db.query<Item>(
-        'SELECT * FROM items ORDER BY created_at DESC'
+    async findAll({ page, limit }: PaginationParams) {
+      const offset = (page - 1) * limit
+      const { rows } = await db.query<Item & { total_count: string }>(
+        'SELECT *, COUNT(*) OVER() AS total_count FROM items ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+        [limit, offset]
       )
-      return rows
+      const total = rows.length > 0 ? parseInt(rows[0].total_count) : 0
+      return {
+        data: rows.map(({ total_count, ...item }) => item as Item),
+        total,
+        page,
+        limit,
+      }
     },
 
     async findById(id) {

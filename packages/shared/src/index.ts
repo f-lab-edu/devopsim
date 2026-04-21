@@ -1,2 +1,2 @@
 export { logger } from './logger';
-export type { HealthResponse } from './types';
+export type { HealthResponse, PaginationParams, PaginatedResult } from './types';
