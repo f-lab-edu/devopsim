@@ -16,3 +16,4 @@ spec:
         name: flux-system
         namespace: flux-system
       interval: 1m
+      reconcileStrategy: Revision
