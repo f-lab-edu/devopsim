@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.2.2...api-v0.3.0) (2026-04-21)
+
+
+### Features
+
+* add pagination to GET /api/items ([a8d60b6](https://github.com/f-lab-edu/devopsim/commit/a8d60b632764fd8a34122bfaaeda7ac4bec22d25))
+* add pagination to GET /api/items ([6289085](https://github.com/f-lab-edu/devopsim/commit/62890850e66c2cb3bd829b20fae86ea2521bd764))
+
 ## [0.2.2](https://github.com/f-lab-edu/devopsim/compare/api-v0.2.1...api-v0.2.2) (2026-04-20)
 
 
