@@ -8,7 +8,7 @@ export function itemService(repo: ItemRepository) {
     },
 
     async getOne(id: number) {
-      const item = await repo.findById(id)
+      const item = await repo.incrementViewCount(id)
       if (!item) throw new AppError(404, 'Item not found')
       return item
     },
