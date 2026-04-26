@@ -47,3 +47,23 @@ output "external_secrets_role_arn" {
   description = "External Secrets IAM Role ARN (for Helm install)"
   value       = module.eks.external_secrets_role_arn
 }
+
+output "karpenter_controller_role_arn" {
+  description = "Karpenter 컨트롤러 IRSA Role ARN — Helm ServiceAccount annotation에 사용"
+  value       = module.eks.karpenter_controller_role_arn
+}
+
+output "karpenter_node_role_name" {
+  description = "Karpenter 노드 Role 이름 — aws-auth ConfigMap에 등록"
+  value       = module.eks.karpenter_node_role_name
+}
+
+output "karpenter_node_instance_profile_name" {
+  description = "Karpenter 노드 Instance Profile 이름 — EC2NodeClass의 instanceProfile에 사용"
+  value       = module.eks.karpenter_node_instance_profile_name
+}
+
+output "karpenter_interruption_queue_name" {
+  description = "Karpenter Interruption SQS Queue 이름 — Helm settings.interruptionQueue에 사용"
+  value       = module.eks.karpenter_interruption_queue_name
+}
