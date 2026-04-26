@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.3.0...api-v0.4.0) (2026-04-26)
+
+
+### Features
+
+* increment view_count on GET /api/items/:id ([5e7673b](https://github.com/f-lab-edu/devopsim/commit/5e7673bd5c795a69a6531b25e36822336d95d99f))
+* increment view_count on GET /api/items/:id ([38d93cc](https://github.com/f-lab-edu/devopsim/commit/38d93cc84bcef45a3f94d58aaa21235006832ae2))
+
 ## [0.3.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.2.2...api-v0.3.0) (2026-04-21)
 
 
