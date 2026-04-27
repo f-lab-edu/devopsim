@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.4.0...api-v0.5.0) (2026-04-27)
+
+
+### Features
+
+* add /chaos/cpu endpoint for load testing ([0fe41b9](https://github.com/f-lab-edu/devopsim/commit/0fe41b923529bc587d68778dbca5235d65e13b41))
+* introduce Karpenter for autoscaling ([e3477ef](https://github.com/f-lab-edu/devopsim/commit/e3477ef1c7b0b45fea54763d103f00683037fa49))
+
 ## [0.4.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.3.0...api-v0.4.0) (2026-04-26)
 
 
