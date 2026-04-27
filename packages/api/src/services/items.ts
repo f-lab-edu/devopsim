@@ -13,6 +13,10 @@ export function itemService(repo: ItemRepository) {
       return item
     },
 
+    getPopular(limit: number) {
+      return repo.findPopular(limit)
+    },
+
     create(dto: CreateItemDto) {
       return repo.create(dto)
     },

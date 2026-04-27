@@ -9,6 +9,16 @@ export const getItemsSchema = {
   },
 } as const
 
+export const getPopularItemsSchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
+    },
+    additionalProperties: false,
+  },
+} as const
+
 export const createItemSchema = {
   body: {
     type: 'object',

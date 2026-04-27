@@ -40,3 +40,8 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 10
   targetCPUUtilizationPercentage: 50
+
+topologySpread:
+  enabled: false
+  maxSkew: 1
+  whenUnsatisfiable: ScheduleAnyway

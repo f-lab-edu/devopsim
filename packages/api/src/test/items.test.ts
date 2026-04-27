@@ -261,3 +261,64 @@ describe('DELETE /items/:id', () => {
     expect(res.statusCode).toBe(404)
   })
 })
+
+describe('GET /items/popular', () => {
+  let app: FastifyInstance
+
+  beforeEach(async () => {
+    app = await createTestApp()
+    await app.pg.query('TRUNCATE TABLE items RESTART IDENTITY')
+  })
+
+  afterEach(async () => {
+    await app.close()
+  })
+
+  test('빈 테이블 → 200 + 빈 배열', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/items/popular' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual([])
+  })
+
+  test('view_count 내림차순으로 정렬되어 반환', async () => {
+    await app.pg.query(`
+      INSERT INTO items (name, view_count) VALUES
+        ('낮은', 1), ('높은', 100), ('중간', 50)
+    `)
+    const res = await app.inject({ method: 'GET', url: '/api/items/popular' })
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.map((i: { name: string }) => i.name)).toEqual(['높은', '중간', '낮은'])
+  })
+
+  test('limit 파라미터로 개수 제한', async () => {
+    for (let i = 0; i < 15; i++) {
+      await app.pg.query('INSERT INTO items (name, view_count) VALUES ($1, $2)', [`item${i}`, i])
+    }
+    const res = await app.inject({ method: 'GET', url: '/api/items/popular?limit=5' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().length).toBe(5)
+  })
+
+  test('limit 기본값은 10', async () => {
+    for (let i = 0; i < 15; i++) {
+      await app.pg.query('INSERT INTO items (name, view_count) VALUES ($1, $2)', [`item${i}`, i])
+    }
+    const res = await app.inject({ method: 'GET', url: '/api/items/popular' })
+    expect(res.json().length).toBe(10)
+  })
+
+  test('limit 범위 초과 (>100) → 400', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/items/popular?limit=999' })
+    expect(res.statusCode).toBe(400)
+  })
+
+  test('view_count 동률은 id 오름차순으로 안정 정렬', async () => {
+    await app.pg.query(`
+      INSERT INTO items (name, view_count) VALUES
+        ('first', 10), ('second', 10), ('third', 10)
+    `)
+    const res = await app.inject({ method: 'GET', url: '/api/items/popular' })
+    expect(res.json().map((i: { name: string }) => i.name)).toEqual(['first', 'second', 'third'])
+  })
+})
