@@ -89,6 +89,7 @@ resource "aws_iam_role_policy" "karpenter_controller" {
           "ec2:DescribeAvailabilityZones",
           "ec2:DescribeImages",
           "ec2:DescribeInstances",
+          "ec2:DescribeInstanceStatus",
           "ec2:DescribeInstanceTypeOfferings",
           "ec2:DescribeInstanceTypes",
           "ec2:DescribeLaunchTemplates",
@@ -107,10 +108,19 @@ resource "aws_iam_role_policy" "karpenter_controller" {
           "iam:CreateInstanceProfile",
           "iam:DeleteInstanceProfile",
           "iam:GetInstanceProfile",
+          "iam:ListInstanceProfiles",
           "iam:RemoveRoleFromInstanceProfile",
           "iam:TagInstanceProfile",
         ]
         Resource = "*"
+      },
+      {
+        # AMI alias 해석 — al2023@latest 같은 alias를 EKS 최적화 AMI ID로 변환
+        # Karpenter가 SSM Parameter Store에서 AMI ID 조회
+        Sid      = "AMIDiscovery"
+        Effect   = "Allow"
+        Action   = "ssm:GetParameter"
+        Resource = "arn:aws:ssm:*::parameter/aws/service/*"
       },
       {
         # Karpenter 노드 역할을 EC2에 넘기기 위한 PassRole
