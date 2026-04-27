@@ -21,6 +21,16 @@ spec:
           command: ["sh", "-c", "until pg_isready -h {{ .Values.db.host }} -p {{ .Values.db.port }}; do echo 'waiting...'; sleep 2; done"]
       {{- end }}
 
+      {{- if .Values.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.topologySpread.maxSkew }}
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: {{ .Values.topologySpread.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "api.selectorLabels" . | nindent 14 }}
+      {{- end }}
+
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
