@@ -24,6 +24,7 @@ export interface UpdateItemDto {
 export interface ItemRepository {
   findAll(params: PaginationParams): Promise<PaginatedResult<Item>>
   findById(id: number): Promise<Item | null>
+  findPopular(limit: number): Promise<Item[]>
   incrementViewCount(id: number): Promise<Item | null>
   create(dto: CreateItemDto): Promise<Item>
   update(id: number, dto: UpdateItemDto): Promise<Item | null>

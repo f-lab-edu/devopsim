@@ -26,6 +26,14 @@ export function pgItemRepository(db: Pool): ItemRepository {
       return rows[0] ?? null
     },
 
+    async findPopular(limit) {
+      const { rows } = await db.query<Item>(
+        'SELECT * FROM items ORDER BY view_count DESC, id ASC LIMIT $1',
+        [limit]
+      )
+      return rows
+    },
+
     async incrementViewCount(id) {
       const { rows } = await db.query<Item>(
         'UPDATE items SET view_count = view_count + 1 WHERE id = $1 RETURNING *',

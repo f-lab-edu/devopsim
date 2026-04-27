@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import type { itemService } from '../services/items'
-import { getItemsSchema, createItemSchema, updateItemSchema } from './schemas/items'
+import { getItemsSchema, getPopularItemsSchema, createItemSchema, updateItemSchema } from './schemas/items'
 
 type ItemService = ReturnType<typeof itemService>
 
@@ -15,6 +15,15 @@ export default async function itemsRoute(
     { schema: getItemsSchema },
     async (req) => {
       return service.getAll(req.query)
+    }
+  )
+
+  // /items/popular은 /items/:id 보다 먼저 등록 (정적 경로 우선 매칭)
+  app.get<{ Querystring: { limit: number } }>(
+    '/items/popular',
+    { schema: getPopularItemsSchema },
+    async (req) => {
+      return service.getPopular(req.query.limit)
     }
   )
 
