@@ -1,0 +1,44 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: karpenter
+  namespace: kube-system
+spec:
+  interval: 1h
+  url: oci://public.ecr.aws/karpenter/karpenter
+  ref:
+    tag: 1.12.0
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: karpenter
+  namespace: kube-system
+spec:
+  interval: 5m
+  chartRef:
+    kind: OCIRepository
+    name: karpenter
+    namespace: kube-system
+  values:
+    serviceAccount:
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::893286712531:role/devopsim-prod-karpenter-controller-role
+
+    settings:
+      clusterName: devopsim-prod-cluster
+      interruptionQueue: devopsim-prod-cluster
+
+    nodeSelector:
+      eks.amazonaws.com/nodegroup: devopsim-prod-node-group
+
+    replicas: 2
+
+    controller:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
