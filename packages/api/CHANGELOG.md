@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.5.0...api-v0.6.0) (2026-04-27)
+
+
+### Features
+
+* add GET /api/items/popular endpoint ([52397f2](https://github.com/f-lab-edu/devopsim/commit/52397f21c07b97ccb557bd6596a7c78121de438f))
+* topologySpread + Karpenter/HPA docs ([a2fc361](https://github.com/f-lab-edu/devopsim/commit/a2fc36188af638e1b3728bf5e84f3238a6d61399))
+
 ## [0.5.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.4.0...api-v0.5.0) (2026-04-27)
 
 
