@@ -4,3 +4,4 @@ resources:
   - db.yaml
   - api.yaml
   - karpenter.yaml
+  - karpenter-nodepool.yaml
