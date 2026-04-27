@@ -2,6 +2,7 @@ import Fastify, { FastifyBaseLogger } from 'fastify'
 import { logger } from '@devopsim/shared'
 import { AppError } from './errors'
 import dbPlugin from './plugins/db'
+import chaosRoute from './routes/chaos'
 import healthRoute from './routes/health'
 import itemsRoute from './routes/items'
 import metricsRoute from './routes/metrics'
@@ -36,6 +37,7 @@ export function buildApp(opts: { logger?: boolean } = {}) {
 
   app.register(healthRoute)
   app.register(metricsRoute)
+  app.register(chaosRoute)
 
   return app
 }
