@@ -55,7 +55,8 @@ resource "aws_subnet" "private" {
 
   tags = merge(var.tags, {
     Name                              = "${var.name}-private-${var.availability_zones[count.index]}"
-    "kubernetes.io/role/internal-elb" = "1" # Internal ALB용 태그
+    "kubernetes.io/role/internal-elb" = "1"                   # Internal ALB용 태그
+    "karpenter.sh/discovery"          = "${var.name}-cluster" # Karpenter EC2NodeClass가 서브넷 탐색에 사용
   })
 }
 

@@ -82,6 +82,12 @@ resource "aws_eks_node_group" "this" {
     max_unavailable = 1
   }
 
+  taint {
+    key    = "CriticalAddonsOnly"
+    value  = "true"
+    effect = "NO_SCHEDULE"
+  }
+
   tags = var.tags
 
   depends_on = [aws_iam_role_policy_attachment.node_policy]
