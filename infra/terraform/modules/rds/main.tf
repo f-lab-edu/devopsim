@@ -16,14 +16,19 @@ resource "aws_secretsmanager_secret" "master" {
 
 resource "aws_secretsmanager_secret_version" "master" {
   secret_id = aws_secretsmanager_secret.master.id
-  secret_string = jsonencode({
-    username = var.master_username
-    password = random_password.master.result
-    engine   = "postgres"
-    host     = aws_db_instance.primary.address
-    port     = aws_db_instance.primary.port
-    dbname   = aws_db_instance.primary.db_name
-  })
+  secret_string = jsonencode(merge(
+    {
+      username = var.master_username
+      password = random_password.master.result
+      engine   = "postgres"
+      host     = aws_db_instance.primary.address
+      port     = aws_db_instance.primary.port
+      dbname   = aws_db_instance.primary.db_name
+    },
+    var.create_replica ? {
+      replica_host = aws_db_instance.replica[0].address
+    } : {}
+  ))
 }
 
 # Subnet Group — 프라이빗 서브넷 2개 AZ 사용 (Multi-AZ Replica용)
