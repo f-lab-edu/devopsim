@@ -47,3 +47,16 @@ module "eks" {
   node_max_size      = var.eks_node_max_size
   tags               = local.tags
 }
+
+module "rds" {
+  source = "../modules/rds"
+
+  name                       = local.name
+  vpc_id                     = module.vpc.vpc_id
+  private_subnet_ids         = module.vpc.private_subnet_ids
+  allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  instance_class             = var.rds_instance_class
+  engine_version             = var.rds_engine_version
+  create_replica             = var.rds_create_replica
+  tags                       = local.tags
+}
