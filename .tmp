@@ -1,0 +1,64 @@
+export ALB=$(kubectl get ingress api -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+echo $ALB   # 빈 값이면 ingress가 아직 안 떴거나 이름이 다른 것
+
+# 살아있는지 확인
+curl -s "$ALB/health"
+
+1. 모니터링용 터미널 (3개 띄워두면 편함)
+
+# Term A — HPA 상태
+watch -n 2 'kubectl get hpa api'
+
+# Term B — Pod / 노드
+watch -n 2 'kubectl get pods -o wide; echo; kubectl get nodes'
+
+# Term C — Pod CPU 사용량
+watch -n 5 'kubectl top pods -l app=api'
+
+2. 부하 단계별 hey 명령
+
+# Phase 1: 가벼운 부하 (30초, 동시 2, ms=300)
+hey -z 30s -c 2 -q 1 "$ALB/chaos/cpu?ms=300"
+
+# Phase 2: 중간 부하 (2분, 동시 10)
+hey -z 2m -c 10 "$ALB/chaos/cpu?ms=500"
+
+# Phase 3: 고부하 (3분, 동시 30)
+hey -z 3m -c 30 "$ALB/chaos/cpu?ms=500"
+
+-z 지속시간, -c 동시 워커, -q 워커당 RPS(생략 시 무제한).
+
+3. 쿨다운 관찰
+
+부하 끊고 그냥 모니터링 터미널 두면 됩니다. 체크포인트:
+
+# HPA 사용률 떨어졌는지
+kubectl get hpa api
+
+# 5분 안정화 후 replicas가 줄어드는지
+kubectl get pods -l app=api
+
+# Karpenter 노드 consolidation
+kubectl get nodes
+kubectl get nodeclaims          # Karpenter가 만든 노드 추적
+
+4. 디버깅용 보조 명령
+
+# HPA 이벤트 (스케일 결정 사유)
+kubectl describe hpa api | tail -30
+
+# Karpenter 로그 (노드 생성/삭제 사유)
+kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter --tail=50 -f
+
+# 특정 Pod의 CPU throttle 여부
+kubectl describe pod <pod-name> | grep -i throttle
+
+
+
+- consolidationPolicy: WhenEmptyOrUnderutilized vs WhenEmpty 어느 쪽 선호하시나요?
+  "낭비 없이 자동 재배치"의 매력 대 "의도치 않은 Pod 이동" 부담 사이에서 어떻게 균형 잡으시는지요. 우리 환경에서는
+  WhenEmptyOrUnderutilized로 두긴 했지만 운영 stateful 서비스 있을 때 위험하지 않을지 걱정됩니다.
+
+- Karpenter가 자동으로 선택한 인스턴스 타입에 대한 신뢰도가 실무에서 어느 정도인가요?
+  부하 테스트 중 Karpenter가 t3a.small을 자동으로 골라서 5개 Pod 몰아넣는 걸 봤는데, 운영 환경에서 가끔 "이상한 선택" 하는 경우
+  있는지, 어떻게 검증하시는지 궁금합니다.
