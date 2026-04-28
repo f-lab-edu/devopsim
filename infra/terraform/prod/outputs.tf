@@ -67,3 +67,39 @@ output "karpenter_interruption_queue_name" {
   description = "Karpenter Interruption SQS Queue 이름 — Helm settings.interruptionQueue에 사용"
   value       = module.eks.karpenter_interruption_queue_name
 }
+
+# ── RDS ──────────────────────────────────────────────────────────────────────
+
+output "rds_primary_endpoint" {
+  description = "Primary RDS endpoint (host:port)"
+  value       = module.rds.primary_endpoint
+}
+
+output "rds_primary_address" {
+  description = "Primary host (port 제외)"
+  value       = module.rds.primary_address
+}
+
+output "rds_replica_endpoint" {
+  description = "Read Replica endpoint"
+  value       = module.rds.replica_endpoint
+}
+
+output "rds_replica_address" {
+  description = "Read Replica host (port 제외)"
+  value       = module.rds.replica_address
+}
+
+output "rds_db_name" {
+  value = module.rds.db_name
+}
+
+output "rds_master_user_secret_arn" {
+  description = "Secrets Manager ARN — External Secrets Operator로 K8s Secret에 동기화"
+  value       = module.rds.master_user_secret_arn
+}
+
+output "rds_master_user_secret_name" {
+  description = "Secrets Manager 시크릿 이름 (ExternalSecret remoteRef.key에 사용)"
+  value       = module.rds.master_user_secret_name
+}

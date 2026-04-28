@@ -18,6 +18,11 @@ output "oidc_provider_arn" {
   value       = aws_iam_openid_connect_provider.eks.arn
 }
 
+output "cluster_security_group_id" {
+  description = "EKS가 자동 생성한 클러스터 보안그룹 (모든 노드에 부여됨, RDS 인입 허용 등에 사용)"
+  value       = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+}
+
 output "alb_controller_role_arn" {
   description = "IAM Role ARN for ALB Controller"
   value       = aws_iam_role.alb_controller.arn

@@ -56,3 +56,22 @@ variable "eks_node_max_size" {
   description = "Maximum number of nodes in EKS node group"
   type        = number
 }
+
+# RDS
+variable "rds_instance_class" {
+  description = "RDS instance class (Primary와 Replica 동일)"
+  type        = string
+  default     = "db.t4g.micro"
+}
+
+variable "rds_engine_version" {
+  description = "PostgreSQL engine version"
+  type        = string
+  default     = "16.13"
+}
+
+variable "rds_create_replica" {
+  description = "Read Replica 생성 여부"
+  type        = bool
+  default     = true
+}
