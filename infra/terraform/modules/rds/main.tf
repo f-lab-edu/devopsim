@@ -7,9 +7,10 @@ resource "random_password" "master" {
 }
 
 resource "aws_secretsmanager_secret" "master" {
-  name                    = "${var.name}/rds/master"
-  description             = "RDS master password for ${var.name}-postgres"
-  recovery_window_in_days = 0 # 학습용 — 즉시 삭제 가능
+  name        = "${var.name}/rds/master"
+  description = "RDS master password for ${var.name}-postgres"
+  # 복구 윈도우 없이 즉시 삭제. destroy/apply 사이클 시 같은 이름 재사용 가능.(default: 30)
+  recovery_window_in_days = 0
 
   tags = var.tags
 }
@@ -71,7 +72,7 @@ resource "aws_security_group_rule" "ingress_from_eks" {
   description              = "PostgreSQL from EKS node SG ${each.value}"
 }
 
-# Custom Parameter Group — 슬로우 쿼리 학습용 설정
+# Custom Parameter Group — 쿼리 로그 분석용 설정
 resource "aws_db_parameter_group" "this" {
   name   = "${var.name}-postgres16"
   family = "postgres16"
@@ -135,7 +136,7 @@ resource "aws_db_instance" "primary" {
   # 슬로우 쿼리 로그를 CloudWatch에 전송
   enabled_cloudwatch_logs_exports = ["postgresql"]
 
-  # 학습용: 삭제 보호 끄고, 스냅샷 없이 바로 삭제 허용
+  # 삭제 보호 비활성, 스냅샷 없이 즉시 삭제 허용
   deletion_protection      = false
   skip_final_snapshot      = true
   delete_automated_backups = true

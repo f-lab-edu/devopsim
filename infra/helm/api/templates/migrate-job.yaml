@@ -14,10 +14,6 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
-      initContainers:
-        - name: wait-for-db
-          image: postgres:16-alpine
-          command: ["sh", "-c", "until pg_isready -h {{ .Values.db.host }} -p {{ .Values.db.port }}; do echo 'waiting...'; sleep 2; done"]
       containers:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

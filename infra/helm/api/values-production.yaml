@@ -31,3 +31,7 @@ topologySpread:
   enabled: true
   maxSkew: 1
   whenUnsatisfiable: ScheduleAnyway
+
+reloader:
+  enabled: true
+  secrets: api-secret

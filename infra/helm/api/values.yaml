@@ -18,14 +18,7 @@ ingress:
   host: ""
   annotations: {}
 
-db:
-  host: db # db Chart의 Service 이름
-  port: 5432
-
 apiSecretName: api-secret
-
-waitForDb:
-  enabled: true
 
 resources: {}
 #  requests:
@@ -45,3 +38,10 @@ topologySpread:
   enabled: false
   maxSkew: 1
   whenUnsatisfiable: ScheduleAnyway
+
+# Stakater Reloader: api-secret 변경 시 Deployment 자동 rolling restart
+# ESO가 RDS 자격증명 갱신할 때 Pod 재시작 트리거
+reloader:
+  enabled: false
+  # 쉼표 구분으로 여러 Secret 가능 ("api-secret,redis-secret")
+  secrets: api-secret
