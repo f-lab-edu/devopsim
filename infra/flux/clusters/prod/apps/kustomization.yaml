@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - db.yaml
   - api.yaml
   - karpenter.yaml
   - karpenter-nodepool.yaml
   - external-secrets.yaml
+  - reloader.yaml
