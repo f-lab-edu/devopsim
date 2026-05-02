@@ -34,5 +34,11 @@ spec:
       reloadOnCreate: true
 
       deployment:
+        # 닭/달걀 방지: 관리형 노드 그룹에 고정 + CriticalAddonsOnly taint tolerate
         nodeSelector:
           eks.amazonaws.com/nodegroup: devopsim-prod-node-group
+        tolerations:
+          - key: CriticalAddonsOnly
+            value: "true"
+            operator: Equal
+            effect: NoSchedule
