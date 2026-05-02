@@ -1,9 +1,10 @@
 # 비밀번호 직접 생성 — RDS managed master password는 Read Replica와 호환 안 됨
 # 대신 random_password + Secrets Manager로 동일 효과 구현
 resource "random_password" "master" {
-  length           = 32
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  length  = 40
+  special = true
+  # 안전하게 영숫자 + 하이픈/언더스코어만 사용.
+  override_special = "-_"
 }
 
 resource "aws_secretsmanager_secret" "master" {
