@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: 893286712531.dkr.ecr.us-east-2.amazonaws.com/devopsim/api
-  tag: "0.6.0"
+  tag: "0.7.0"
   pullPolicy: Always
 
 redis:
