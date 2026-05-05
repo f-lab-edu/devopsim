@@ -24,6 +24,12 @@ apiSecretName: api-secret
 redis:
   url: ""
 
+# Prometheus ServiceMonitor — 클러스터에 prometheus-operator가 있을 때만 enable.
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  scrapeTimeout: 10s
+
 resources: {}
 #  requests:
 #    cpu: "100m"

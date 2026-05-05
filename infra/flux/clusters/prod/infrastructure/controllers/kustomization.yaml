@@ -4,3 +4,4 @@ resources:
   - external-secrets.yaml
   - karpenter.yaml
   - reloader.yaml
+  - kube-prometheus-stack.yaml
