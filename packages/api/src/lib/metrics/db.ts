@@ -26,7 +26,9 @@ export async function measureDbQuery<T>(
 
 // pg.Pool은 totalCount/idleCount/waitingCount를 표준 속성으로 노출.
 // /metrics 호출 시점에 collect 콜백이 그 값을 set — 항상 최신값을 반환.
+// idempotent: 테스트에서 buildApp이 여러 번 호출돼도 register 중복 등록 에러 회피.
 export function registerPgPoolGauges(pool: Pool) {
+  if (register.getSingleMetric('pg_pool_total_connections')) return
   new Gauge({
     name: 'pg_pool_total_connections',
     help: 'Total connections in the pool (active + idle)',
