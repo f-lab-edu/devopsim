@@ -3,8 +3,6 @@ kind: OCIRepository
 metadata:
   name: karpenter
   namespace: kube-system
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   interval: 1h
   url: oci://public.ecr.aws/karpenter/karpenter
@@ -16,8 +14,6 @@ kind: HelmRelease
 metadata:
   name: karpenter
   namespace: kube-system
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   interval: 5m
   chartRef:
@@ -26,7 +22,7 @@ spec:
     namespace: kube-system
   values:
     serviceAccount:
-      annotations:
+  annotations:
         eks.amazonaws.com/role-arn: arn:aws:iam::893286712531:role/devopsim-prod-karpenter-controller-role
 
     settings:
