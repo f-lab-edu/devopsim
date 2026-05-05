@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.6.0...api-v0.7.0) (2026-05-05)
+
+
+### Features
+
+* Redis 캐시 레이어 추가 ([8343d91](https://github.com/f-lab-edu/devopsim/commit/8343d91396a13ab5df3013a98416f63b3c75a624))
+* Redis 캐시 레이어 추가 + api 네임스페이스 이동 ([10cf475](https://github.com/f-lab-edu/devopsim/commit/10cf475bbf9760f5e953fc0a50458e40637eab46))
+
 ## [0.6.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.5.0...api-v0.6.0) (2026-04-27)
 
 
