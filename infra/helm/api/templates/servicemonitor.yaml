@@ -12,6 +12,6 @@ spec:
   endpoints:
     - port: http
       path: /metrics
-      interval: {{ .Values.serviceMonitor.interval | default "15s" }}
-      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout | default "10s" }}
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
 {{- end }}

@@ -65,8 +65,7 @@ spec:
 
     # ── Grafana ────────────────────────────────────────────────────────
     grafana:
-      # default: admin / prom-operator (학습 환경)
-      adminPassword: prom-operator
+      adminPassword: admin
       defaultDashboardsEnabled: true
       ingress:
         enabled: true
