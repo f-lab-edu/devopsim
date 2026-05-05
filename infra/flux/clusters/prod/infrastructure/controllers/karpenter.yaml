@@ -22,7 +22,7 @@ spec:
     namespace: kube-system
   values:
     serviceAccount:
-  annotations:
+      annotations:
         eks.amazonaws.com/role-arn: arn:aws:iam::893286712531:role/devopsim-prod-karpenter-controller-role
 
     settings:
