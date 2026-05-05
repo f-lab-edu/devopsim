@@ -20,6 +20,10 @@ ingress:
 
 apiSecretName: api-secret
 
+# Redis 캐시. url이 비어있으면 캐시 비활성 (NoOp).
+redis:
+  url: ""
+
 resources: {}
 #  requests:
 #    cpu: "100m"

@@ -5,6 +5,9 @@ image:
   tag: "0.6.0"
   pullPolicy: Always
 
+redis:
+  url: "redis://redis.redis.svc.cluster.local:6379"
+
 ingress:
   enabled: true
   className: alb

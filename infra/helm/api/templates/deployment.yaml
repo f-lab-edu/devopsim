@@ -40,6 +40,10 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.apiSecretName }}
                   key: database-url
+            {{- if .Values.redis.url }}
+            - name: REDIS_URL
+              value: {{ .Values.redis.url | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: 3000

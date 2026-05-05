@@ -2,7 +2,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: api
-  namespace: default
+  namespace: api
 spec:
   interval: 5m
   chart:
