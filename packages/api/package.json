@@ -12,7 +12,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@christiangalsterer/node-postgres-prometheus-exporter": "^1.4.0",
     "@devopsim/shared": "*",
     "@fastify/postgres": "^6.0.0",
     "fastify": "^5.0.0",

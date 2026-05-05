@@ -10,6 +10,7 @@ import metricsRoute from './routes/metrics'
 import { pgItemRepository } from './repositories/items'
 import { noopItemCache, redisItemCache } from './cache/items'
 import { itemService } from './services/items'
+import { cacheMetrics, appErrorsTotal, registerItemsTotalGauge } from './lib/metrics'
 
 export function buildApp(opts: { logger?: boolean } = {}) {
   // 테스트 시 logger: false, 그 외엔 shared pino logger 주입
@@ -20,10 +21,13 @@ export function buildApp(opts: { logger?: boolean } = {}) {
 
   app.setErrorHandler((error: Error & { statusCode?: number; validation?: unknown }, _req, reply) => {
     if (error instanceof AppError) {
+      appErrorsTotal.inc({ type: 'app_error' })
       reply.code(error.statusCode).send({ message: error.message })
     } else if (error.validation) {
+      appErrorsTotal.inc({ type: 'validation' })
       reply.code(400).send({ message: error.message })
     } else {
+      appErrorsTotal.inc({ type: 'unhandled' })
       app.log.error(error)
       reply.code(500).send({ message: 'Internal Server Error' })
     }
@@ -35,7 +39,8 @@ export function buildApp(opts: { logger?: boolean } = {}) {
   app.after(() => {
     const repo = pgItemRepository(app.pg.pool)
     const cache = app.redis ? redisItemCache(app.redis) : noopItemCache()
-    const service = itemService(repo, cache)
+    const service = itemService(repo, cache, cacheMetrics)
+    registerItemsTotalGauge(repo)
     app.register(itemsRoute, { service, prefix: '/api' })
   })
 
