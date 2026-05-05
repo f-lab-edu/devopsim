@@ -8,6 +8,9 @@ image:
 redis:
   url: "redis://redis.redis.svc.cluster.local:6379"
 
+serviceMonitor:
+  enabled: true
+
 ingress:
   enabled: true
   className: alb
