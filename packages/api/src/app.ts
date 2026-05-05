@@ -3,6 +3,7 @@ import { logger } from '@devopsim/shared'
 import { AppError } from './errors'
 import dbPlugin from './plugins/db'
 import redisPlugin from './plugins/redis'
+import metricsHooksPlugin from './plugins/metrics-hooks'
 import chaosRoute from './routes/chaos'
 import healthRoute from './routes/health'
 import itemsRoute from './routes/items'
@@ -33,6 +34,7 @@ export function buildApp(opts: { logger?: boolean } = {}) {
     }
   })
 
+  app.register(metricsHooksPlugin)
   app.register(dbPlugin)
   app.register(redisPlugin)
 
