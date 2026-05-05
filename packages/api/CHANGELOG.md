@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.7.0...api-v0.8.0) (2026-05-05)
+
+
+### Features
+
+* custom Prometheus 메트릭 추가 + 디렉토리 구조 정리 ([b95e256](https://github.com/f-lab-edu/devopsim/commit/b95e256cd8d2d361a2c70b965c51be00ecb57814))
+* custom Prometheus 메트릭 추가 + 디렉토리 구조 정리 ([07e0157](https://github.com/f-lab-edu/devopsim/commit/07e0157d455ab88f73a1f49aff63ec57b47bca54))
+
+
+### Bug Fixes
+
+* gauge factory를 idempotent하게 — 테스트 중복 등록 회피 ([f45f553](https://github.com/f-lab-edu/devopsim/commit/f45f5535c908cc88de62843df27abb390facadce))
+
 ## [0.7.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.6.0...api-v0.7.0) (2026-05-05)
 
 
