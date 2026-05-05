@@ -4,3 +4,4 @@ resources:
   - namespaces.yaml
   - cluster-secret-store.yaml
   - karpenter-nodepool.yaml
+  - redis.yaml

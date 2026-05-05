@@ -1,7 +1,8 @@
 import type { ItemRepository, CreateItemDto, UpdateItemDto, PaginationParams } from '../domain/item'
+import type { ItemCache } from '../cache/items'
 import { AppError } from '../errors'
 
-export function itemService(repo: ItemRepository) {
+export function itemService(repo: ItemRepository, cache: ItemCache) {
   return {
     getAll(params: PaginationParams) {
       return repo.findAll(params)
@@ -10,11 +11,17 @@ export function itemService(repo: ItemRepository) {
     async getOne(id: number) {
       const item = await repo.incrementViewCount(id)
       if (!item) throw new AppError(404, 'Item not found')
+      // view_count 변경 → popular 순위 바뀔 수 있어 popular 캐시 전체 무효화
+      await cache.invalidatePopular()
       return item
     },
 
-    getPopular(limit: number) {
-      return repo.findPopular(limit)
+    async getPopular(limit: number) {
+      const cached = await cache.getPopular(limit)
+      if (cached) return cached
+      const items = await repo.findPopular(limit)
+      await cache.setPopular(limit, items)
+      return items
     },
 
     create(dto: CreateItemDto) {

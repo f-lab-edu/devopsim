@@ -2,11 +2,13 @@ import Fastify, { FastifyBaseLogger } from 'fastify'
 import { logger } from '@devopsim/shared'
 import { AppError } from './errors'
 import dbPlugin from './plugins/db'
+import redisPlugin from './plugins/redis'
 import chaosRoute from './routes/chaos'
 import healthRoute from './routes/health'
 import itemsRoute from './routes/items'
 import metricsRoute from './routes/metrics'
 import { pgItemRepository } from './repositories/items'
+import { noopItemCache, redisItemCache } from './cache/items'
 import { itemService } from './services/items'
 
 export function buildApp(opts: { logger?: boolean } = {}) {
@@ -28,10 +30,12 @@ export function buildApp(opts: { logger?: boolean } = {}) {
   })
 
   app.register(dbPlugin)
+  app.register(redisPlugin)
 
   app.after(() => {
     const repo = pgItemRepository(app.pg.pool)
-    const service = itemService(repo)
+    const cache = app.redis ? redisItemCache(app.redis) : noopItemCache()
+    const service = itemService(repo, cache)
     app.register(itemsRoute, { service, prefix: '/api' })
   })
 
