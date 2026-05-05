@@ -52,16 +52,10 @@ spec:
               resources:
                 requests:
                   storage: 10Gi
+      # UI는 외부 노출 안 함 — port-forward로 접근.
+      # 인증 없는 internet-facing은 보안상 위험.
       ingress:
-        enabled: true
-        ingressClassName: alb
-        annotations:
-          alb.ingress.kubernetes.io/scheme: internet-facing
-          alb.ingress.kubernetes.io/target-type: ip
-          alb.ingress.kubernetes.io/group.name: monitoring
-        paths:
-          - /
-        pathType: Prefix
+        enabled: false
 
     # ── Grafana ────────────────────────────────────────────────────────
     grafana:
@@ -88,16 +82,9 @@ spec:
               resources:
                 requests:
                   storage: 2Gi
+      # UI는 외부 노출 안 함 — port-forward 접근.
       ingress:
-        enabled: true
-        ingressClassName: alb
-        annotations:
-          alb.ingress.kubernetes.io/scheme: internet-facing
-          alb.ingress.kubernetes.io/target-type: ip
-          alb.ingress.kubernetes.io/group.name: monitoring
-        paths:
-          - /
-        pathType: Prefix
+        enabled: false
 
     # ── kube-state-metrics, node-exporter ──────────────────────────────
     # 둘 다 default enabled — 추가 설정 없이 그대로
