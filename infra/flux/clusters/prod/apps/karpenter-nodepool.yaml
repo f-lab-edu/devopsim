@@ -2,6 +2,8 @@ apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: default
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   template:
     spec:
@@ -37,6 +39,8 @@ apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
   name: default
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   role: devopsim-prod-karpenter-node-role
   amiSelectorTerms:
