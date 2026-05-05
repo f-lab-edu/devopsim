@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.8.0...api-v0.9.0) (2026-05-05)
+
+
+### Features
+
+* chaos 엔드포인트에 cache/db 시뮬레이션 추가 ([69f6c1e](https://github.com/f-lab-edu/devopsim/commit/69f6c1e1d54e9068ef0370c81c5b61c71fbb04cd))
+* chaos 엔드포인트에 cache/db 시뮬레이션 추가 ([e5f19b3](https://github.com/f-lab-edu/devopsim/commit/e5f19b3d8004a65d09a46d3776208612460c483c))
+
 ## [0.8.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.7.0...api-v0.8.0) (2026-05-05)
 
 
