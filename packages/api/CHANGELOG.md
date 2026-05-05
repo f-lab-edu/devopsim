@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.1](https://github.com/f-lab-edu/devopsim/compare/api-v0.9.0...api-v0.9.1) (2026-05-05)
+
+
+### Bug Fixes
+
+* HTTP 메트릭 hook을 fastify-plugin으로 hoist ([ce7f096](https://github.com/f-lab-edu/devopsim/commit/ce7f096bbdaa8e788ef41efc4c1119fa1a4426a6))
+* HTTP 메트릭 hook을 fastify-plugin으로 hoist — /metrics 외 라우트도 수집 ([ae7f522](https://github.com/f-lab-edu/devopsim/commit/ae7f5226aa4a61c933b37a3335b443ad6a373339))
+
 ## [0.9.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.8.0...api-v0.9.0) (2026-05-05)
 
 
