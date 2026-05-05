@@ -1,8 +1,9 @@
 import type { ItemRepository, CreateItemDto, UpdateItemDto, PaginationParams } from '../domain/item'
 import type { ItemCache } from '../cache/items'
+import type { CacheMetrics } from '../lib/metrics'
 import { AppError } from '../errors'
 
-export function itemService(repo: ItemRepository, cache: ItemCache) {
+export function itemService(repo: ItemRepository, cache: ItemCache, metrics: CacheMetrics) {
   return {
     getAll(params: PaginationParams) {
       return repo.findAll(params)
@@ -18,7 +19,11 @@ export function itemService(repo: ItemRepository, cache: ItemCache) {
 
     async getPopular(limit: number) {
       const cached = await cache.getPopular(limit)
-      if (cached) return cached
+      if (cached) {
+        metrics.hit('popular')
+        return cached
+      }
+      metrics.miss('popular')
       const items = await repo.findPopular(limit)
       await cache.setPopular(limit, items)
       return items

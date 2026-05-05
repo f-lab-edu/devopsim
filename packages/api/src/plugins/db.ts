@@ -1,8 +1,7 @@
 import fp from 'fastify-plugin'
 import postgres from '@fastify/postgres'
 import { FastifyInstance } from 'fastify'
-import { monitorPgPool } from '@christiangalsterer/node-postgres-prometheus-exporter'
-import { register } from '../lib/metrics'
+import { registerPgPoolGauges } from '../lib/metrics'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -19,10 +18,9 @@ async function dbPlugin(app: FastifyInstance) {
     await app.pg.pool.query('SELECT 1')
   })
 
-  // pool이 준비된 후 Prometheus 모니터링 시작
-  // pool.query를 내부적으로 패치해서 query_duration, errors 자동 수집
+  // pool이 준비된 후 메트릭 등록 — collect 콜백이 /metrics 호출 시점마다 최신값 set
   app.addHook('onReady', async () => {
-    monitorPgPool(app.pg.pool, register)
+    registerPgPoolGauges(app.pg.pool)
   })
 }
 

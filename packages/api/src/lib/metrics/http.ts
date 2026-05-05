@@ -1,10 +1,5 @@
-import { Registry, collectDefaultMetrics, Counter, Histogram, Gauge } from 'prom-client'
-
-export const register = new Registry()
-
-collectDefaultMetrics({ register })
-
-// ── HTTP 메트릭 ──────────────────────────────────────────────────────────
+import { Counter, Histogram, Gauge } from 'prom-client'
+import { register } from './register'
 
 export const httpRequestsTotal = new Counter({
   name: 'http_requests_total',
