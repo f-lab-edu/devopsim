@@ -2,12 +2,16 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: reloader
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: stakater
   namespace: reloader
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   interval: 1h
   url: https://stakater.github.io/stakater-charts
@@ -17,6 +21,8 @@ kind: HelmRelease
 metadata:
   name: reloader
   namespace: reloader
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   interval: 5m
   chart:
