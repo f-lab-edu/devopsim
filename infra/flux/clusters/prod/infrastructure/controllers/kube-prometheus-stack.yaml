@@ -88,6 +88,20 @@ spec:
             gnetId: 19341
             revision: 1
             datasource: Prometheus
+      # download된 JSON이 import되려면 file-based provider 필요.
+      # sc-dashboardproviders (sidecar용)만 있어서 위 dashboards가 import 안 됐던 문제 수정.
+      dashboardProviders:
+        dashboardproviders.yaml:
+          apiVersion: 1
+          providers:
+            - name: default
+              orgId: 1
+              folder: ''
+              type: file
+              disableDeletion: false
+              editable: true
+              options:
+                path: /var/lib/grafana/dashboards/default
       ingress:
         enabled: true
         ingressClassName: alb
