@@ -78,6 +78,16 @@ spec:
     grafana:
       adminPassword: admin
       defaultDashboardsEnabled: true
+      dashboards:
+        default:
+          prometheus-all-metrics:
+            gnetId: 19268
+            revision: 1
+            datasource: Prometheus
+          prometheus-metrics-management:
+            gnetId: 19341
+            revision: 1
+            datasource: Prometheus
       ingress:
         enabled: true
         ingressClassName: alb

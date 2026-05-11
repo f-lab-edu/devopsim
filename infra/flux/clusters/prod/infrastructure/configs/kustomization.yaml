@@ -5,3 +5,4 @@ resources:
   - cluster-secret-store.yaml
   - karpenter-nodepool.yaml
   - redis.yaml
+  - grafana-dashboard-api.yaml
