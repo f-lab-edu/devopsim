@@ -84,10 +84,8 @@ spec:
             gnetId: 19268
             revision: 1
             datasource: Prometheus
-          prometheus-metrics-management:
-            gnetId: 19341
-            revision: 1
-            datasource: Prometheus
+          # 19341은 ${DS_EU02} 변수가 있어 gnetId 자동 치환 실패 → ConfigMap으로 직접 박음
+          # (configs/grafana-dashboard-prometheus-cardinality.yaml)
       # download된 JSON이 import되려면 file-based provider 필요.
       # sc-dashboardproviders (sidecar용)만 있어서 위 dashboards가 import 안 됐던 문제 수정.
       dashboardProviders:
