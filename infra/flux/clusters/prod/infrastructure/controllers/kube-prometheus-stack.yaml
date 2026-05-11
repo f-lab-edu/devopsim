@@ -44,6 +44,15 @@ spec:
           limits:
             cpu: 1000m
             memory: 2Gi
+        # Karpenter에 medium 인스턴스(t3a.medium=4GB) 강제 — t3a.small(1.96GB)에선 메모리 spike 시 노드 OOM
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: karpenter.k8s.aws/instance-size
+                      operator: In
+                      values: ["medium"]
         # 다른 namespace의 ServiceMonitor도 자동 발견하려면 false 필수.
         # true(default) 면 release label 매칭만 되어 우리 api ServiceMonitor 누락됨.
         serviceMonitorSelectorNilUsesHelmValues: false
