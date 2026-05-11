@@ -36,6 +36,14 @@ spec:
     prometheus:
       prometheusSpec:
         retention: 15d
+        retentionSize: 8GB
+        resources:
+          requests:
+            cpu: 200m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
         # 다른 namespace의 ServiceMonitor도 자동 발견하려면 false 필수.
         # true(default) 면 release label 매칭만 되어 우리 api ServiceMonitor 누락됨.
         serviceMonitorSelectorNilUsesHelmValues: false
