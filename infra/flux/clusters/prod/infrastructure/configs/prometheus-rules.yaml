@@ -71,14 +71,19 @@ spec:
       interval: 30s
       rules:
         - alert: DBPoolWaiting
-          expr: max(pg_pool_waiting_clients) > 0
+          # waiting > 0 단독으로는 false positive 발생 (collect callback race로 항상 1로 잡힘).
+          # 진짜 풀 고갈은 idle == 0 AND waiting > 0 — 두 조건 모두 만족해야 fire.
+          expr: |
+            max(pg_pool_waiting_clients) > 0
+              and
+            max(pg_pool_idle_connections) == 0
           for: 5m
           labels:
             severity: warning
             service: api
           annotations:
-            summary: "PG connection pool에 대기 client 발생"
-            description: "현재 waiting = {{ $value }}. 풀 max(10) 초과 시그널 — 풀 사이즈 검토 필요."
+            summary: "PG connection pool 고갈 — idle=0인데 대기 발생"
+            description: "현재 waiting = {{ $value }}. 풀 max(10) 모두 사용 중. 풀 사이즈 검토 필요."
 
         - alert: DBSlowQuery
           expr: |

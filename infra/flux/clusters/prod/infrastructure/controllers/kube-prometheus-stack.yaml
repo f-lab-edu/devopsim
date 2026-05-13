@@ -32,6 +32,14 @@ spec:
     crds:
       enabled: true
 
+    # EKS는 control plane이 AWS managed라 일부 컴포넌트가 메트릭 노출 X.
+    # chart의 default rule이 항상 firing 상태 (false positive). 비활성화.
+    defaultRules:
+      rules:
+        kubeControllerManager: false  # EKS managed
+        kubeScheduler: false          # EKS managed
+        etcd: false                   # EKS managed
+
     # ── Prometheus 서버 ────────────────────────────────────────────────
     prometheus:
       prometheusSpec:
