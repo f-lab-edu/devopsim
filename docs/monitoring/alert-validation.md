@@ -158,3 +158,9 @@ kubectl scale -n monitoring statefulset/alertmanager-kube-prometheus-stack-alert
 - false positive로 알려진 패턴:
   - `pg_pool_waiting_clients > 0` 단독 → collect callback race로 가끔 1. **AND idle==0** 추가로 보완 (PR #54)
   - kube-prometheus-stack 기본 controller-manager/scheduler/etcd alert → EKS는 managed라 X. `defaultRules.rules.*: false`로 비활성화 (PR #54)
+- **검증 중 발견한 false negative** (이 PR에서 수정):
+  - read/write split 후 `max(pg_pool_idle_connections)`가 read pool의 idle=1까지 포함해서 max 계산
+    → write pool 고갈 상황(write idle=0, write waiting=10)에서도 `== 0` 조건 fail
+    → DBPoolWaiting alert가 영원히 안 잡힘
+    → fix: `max by (pool) (...)`로 pool 단위 매칭
+  - DBSlowQuery도 같은 이유로 `by (le, operation, pool)`까지 묶어 pool별 분리
