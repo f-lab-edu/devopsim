@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.9.1...api-v0.10.0) (2026-05-13)
+
+
+### Features
+
+* api DB read/write 분리 (replica routing) ([758a5f5](https://github.com/f-lab-edu/devopsim/commit/758a5f58844fc90dbce9feed23b1ec325ef5d157))
+* api DB 연결을 read replica / write primary로 분리 ([8d5a15c](https://github.com/f-lab-edu/devopsim/commit/8d5a15c8705e8dc58b3708274e6743078d198a4c))
+
 ## [0.9.1](https://github.com/f-lab-edu/devopsim/compare/api-v0.9.0...api-v0.9.1) (2026-05-05)
 
 
