@@ -1,13 +1,13 @@
-import type { Pool } from 'pg'
 import type { Item, ItemRepository, PaginationParams } from '../domain/item'
+import type { DbPools } from '../plugins/db'
 import { measureDbQuery } from '../lib/metrics'
 
-export function pgItemRepository(db: Pool): ItemRepository {
+export function pgItemRepository({ read, write }: DbPools): ItemRepository {
   return {
     async findAll({ page, limit }: PaginationParams) {
-      return measureDbQuery('findAll', async () => {
+      return measureDbQuery('findAll', 'read', async () => {
         const offset = (page - 1) * limit
-        const { rows } = await db.query<Item & { total_count: string }>(
+        const { rows } = await read.query<Item & { total_count: string }>(
           'SELECT *, COUNT(*) OVER() AS total_count FROM items ORDER BY created_at DESC LIMIT $1 OFFSET $2',
           [limit, offset]
         )
@@ -22,8 +22,8 @@ export function pgItemRepository(db: Pool): ItemRepository {
     },
 
     async findById(id) {
-      return measureDbQuery('findById', async () => {
-        const { rows } = await db.query<Item>(
+      return measureDbQuery('findById', 'read', async () => {
+        const { rows } = await read.query<Item>(
           'SELECT * FROM items WHERE id = $1',
           [id]
         )
@@ -32,8 +32,8 @@ export function pgItemRepository(db: Pool): ItemRepository {
     },
 
     async findPopular(limit) {
-      return measureDbQuery('findPopular', async () => {
-        const { rows } = await db.query<Item>(
+      return measureDbQuery('findPopular', 'read', async () => {
+        const { rows } = await read.query<Item>(
           'SELECT * FROM items ORDER BY view_count DESC, id ASC LIMIT $1',
           [limit]
         )
@@ -42,8 +42,8 @@ export function pgItemRepository(db: Pool): ItemRepository {
     },
 
     async incrementViewCount(id) {
-      return measureDbQuery('incrementViewCount', async () => {
-        const { rows } = await db.query<Item>(
+      return measureDbQuery('incrementViewCount', 'write', async () => {
+        const { rows } = await write.query<Item>(
           'UPDATE items SET view_count = view_count + 1 WHERE id = $1 RETURNING *',
           [id]
         )
@@ -52,8 +52,8 @@ export function pgItemRepository(db: Pool): ItemRepository {
     },
 
     async create(dto) {
-      return measureDbQuery('create', async () => {
-        const { rows } = await db.query<Item>(
+      return measureDbQuery('create', 'write', async () => {
+        const { rows } = await write.query<Item>(
           'INSERT INTO items (name, description) VALUES ($1, $2) RETURNING *',
           [dto.name, dto.description ?? null]
         )
@@ -62,7 +62,7 @@ export function pgItemRepository(db: Pool): ItemRepository {
     },
 
     async update(id, dto) {
-      return measureDbQuery('update', async () => {
+      return measureDbQuery('update', 'write', async () => {
         const fields: string[] = []
         const values: unknown[] = []
         let idx = 1
@@ -77,7 +77,7 @@ export function pgItemRepository(db: Pool): ItemRepository {
         }
         fields.push(`updated_at = NOW()`)
         values.push(id)
-        const { rows } = await db.query<Item>(
+        const { rows } = await write.query<Item>(
           `UPDATE items SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
           values
         )
@@ -86,8 +86,8 @@ export function pgItemRepository(db: Pool): ItemRepository {
     },
 
     async remove(id) {
-      return measureDbQuery('remove', async () => {
-        const { rowCount } = await db.query(
+      return measureDbQuery('remove', 'write', async () => {
+        const { rowCount } = await write.query(
           'DELETE FROM items WHERE id = $1',
           [id]
         )
@@ -96,8 +96,8 @@ export function pgItemRepository(db: Pool): ItemRepository {
     },
 
     async count() {
-      return measureDbQuery('count', async () => {
-        const { rows } = await db.query<{ count: string }>(
+      return measureDbQuery('count', 'read', async () => {
+        const { rows } = await read.query<{ count: string }>(
           'SELECT COUNT(*)::text AS count FROM items'
         )
         return parseInt(rows[0].count, 10)

@@ -28,4 +28,4 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.apiSecretName }}
-                  key: database-url
+                  key: database-url-write

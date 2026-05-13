@@ -7,7 +7,7 @@ describe('POST /items', () => {
 
   beforeEach(async () => {
     app = await createTestApp()
-    await app.pg.query('TRUNCATE TABLE items RESTART IDENTITY')
+    await app.pg.write.query('TRUNCATE TABLE items RESTART IDENTITY')
   })
 
   afterEach(async () => {
@@ -107,8 +107,8 @@ describe('GET /items/:id', () => {
 
   beforeEach(async () => {
     app = await createTestApp()
-    await app.pg.query('TRUNCATE TABLE items RESTART IDENTITY')
-    const { rows } = await app.pg.query(
+    await app.pg.write.query('TRUNCATE TABLE items RESTART IDENTITY')
+    const { rows } = await app.pg.write.query(
       `INSERT INTO items (name) VALUES ('조회용 아이템') RETURNING id`
     )
     createdId = rows[0].id
@@ -139,8 +139,8 @@ describe('PUT /items/:id', () => {
 
   beforeEach(async () => {
     app = await createTestApp()
-    await app.pg.query('TRUNCATE TABLE items RESTART IDENTITY')
-    const { rows } = await app.pg.query(
+    await app.pg.write.query('TRUNCATE TABLE items RESTART IDENTITY')
+    const { rows } = await app.pg.write.query(
       `INSERT INTO items (name, description) VALUES ('원본', '원본설명') RETURNING id`
     )
     createdId = rows[0].id
@@ -240,8 +240,8 @@ describe('DELETE /items/:id', () => {
 
   beforeEach(async () => {
     app = await createTestApp()
-    await app.pg.query('TRUNCATE TABLE items RESTART IDENTITY')
-    const { rows } = await app.pg.query(
+    await app.pg.write.query('TRUNCATE TABLE items RESTART IDENTITY')
+    const { rows } = await app.pg.write.query(
       `INSERT INTO items (name) VALUES ('삭제용') RETURNING id`
     )
     createdId = rows[0].id
@@ -267,7 +267,7 @@ describe('GET /items/popular', () => {
 
   beforeEach(async () => {
     app = await createTestApp()
-    await app.pg.query('TRUNCATE TABLE items RESTART IDENTITY')
+    await app.pg.write.query('TRUNCATE TABLE items RESTART IDENTITY')
   })
 
   afterEach(async () => {
@@ -281,7 +281,7 @@ describe('GET /items/popular', () => {
   })
 
   test('view_count 내림차순으로 정렬되어 반환', async () => {
-    await app.pg.query(`
+    await app.pg.write.query(`
       INSERT INTO items (name, view_count) VALUES
         ('낮은', 1), ('높은', 100), ('중간', 50)
     `)
@@ -293,7 +293,7 @@ describe('GET /items/popular', () => {
 
   test('limit 파라미터로 개수 제한', async () => {
     for (let i = 0; i < 15; i++) {
-      await app.pg.query('INSERT INTO items (name, view_count) VALUES ($1, $2)', [`item${i}`, i])
+      await app.pg.write.query('INSERT INTO items (name, view_count) VALUES ($1, $2)', [`item${i}`, i])
     }
     const res = await app.inject({ method: 'GET', url: '/api/items/popular?limit=5' })
     expect(res.statusCode).toBe(200)
@@ -302,7 +302,7 @@ describe('GET /items/popular', () => {
 
   test('limit 기본값은 10', async () => {
     for (let i = 0; i < 15; i++) {
-      await app.pg.query('INSERT INTO items (name, view_count) VALUES ($1, $2)', [`item${i}`, i])
+      await app.pg.write.query('INSERT INTO items (name, view_count) VALUES ($1, $2)', [`item${i}`, i])
     }
     const res = await app.inject({ method: 'GET', url: '/api/items/popular' })
     expect(res.json().length).toBe(10)
@@ -314,7 +314,7 @@ describe('GET /items/popular', () => {
   })
 
   test('view_count 동률은 id 오름차순으로 안정 정렬', async () => {
-    await app.pg.query(`
+    await app.pg.write.query(`
       INSERT INTO items (name, view_count) VALUES
         ('first', 10), ('second', 10), ('third', 10)
     `)
