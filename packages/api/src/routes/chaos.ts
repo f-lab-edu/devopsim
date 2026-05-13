@@ -55,7 +55,7 @@ export default async function chaosRoute(app: FastifyInstance) {
     const requested = Number(req.query.seconds ?? 1)
     const sec = Math.min(Math.max(requested, 1), MAX_DB_SLEEP_SEC)
 
-    await app.pg.pool.query('SELECT pg_sleep($1)', [sec])
+    await app.pg.write.pool.query('SELECT pg_sleep($1)', [sec])
     reply.send({ sleptSeconds: sec })
   })
 
@@ -70,7 +70,7 @@ export default async function chaosRoute(app: FastifyInstance) {
       const sleepSec = Math.min(Math.max(Number(req.query.sleep ?? 2), 1), MAX_DB_SLEEP_SEC)
 
       const queries = Array.from({ length: count }, () =>
-        app.pg.pool.query('SELECT pg_sleep($1)', [sleepSec])
+        app.pg.write.pool.query('SELECT pg_sleep($1)', [sleepSec])
       )
       await Promise.all(queries)
       reply.send({ count, sleepSec })
@@ -81,7 +81,7 @@ export default async function chaosRoute(app: FastifyInstance) {
   // GET /chaos/db/error → 잘못된 query 발생. setErrorHandler가 잡아서
   // app_errors_total{type="unhandled"} 카운트 증가.
   app.get('/chaos/db/error', async () => {
-    await app.pg.pool.query('SELECT * FROM nonexistent_table_for_chaos')
+    await app.pg.write.pool.query('SELECT * FROM nonexistent_table_for_chaos')
     return { unreachable: true }
   })
 }

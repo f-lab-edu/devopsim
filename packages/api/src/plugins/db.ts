@@ -1,7 +1,13 @@
 import fp from 'fastify-plugin'
 import postgres from '@fastify/postgres'
 import { FastifyInstance } from 'fastify'
+import type { Pool } from 'pg'
 import { registerPgPoolGauges } from '../lib/metrics'
+
+export interface DbPools {
+  read: Pool
+  write: Pool
+}
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -10,17 +16,23 @@ declare module 'fastify' {
 }
 
 async function dbPlugin(app: FastifyInstance) {
-  app.register(postgres, {
-    connectionString: process.env.DATABASE_URL,
-  })
+  // read replica가 없는 환경에선 동일 URL로 fallback — 로컬/테스트 호환
+  const writeUrl = process.env.DATABASE_WRITE_URL ?? process.env.DATABASE_URL
+  const readUrl = process.env.DATABASE_READ_URL ?? writeUrl
+
+  app.register(postgres, { connectionString: writeUrl, name: 'write' })
+  app.register(postgres, { connectionString: readUrl, name: 'read' })
 
   app.decorate('checkDbHealth', async () => {
-    await app.pg.pool.query('SELECT 1')
+    await Promise.all([
+      app.pg.write.pool.query('SELECT 1'),
+      app.pg.read.pool.query('SELECT 1'),
+    ])
   })
 
-  // pool이 준비된 후 메트릭 등록 — collect 콜백이 /metrics 호출 시점마다 최신값 set
   app.addHook('onReady', async () => {
-    registerPgPoolGauges(app.pg.pool)
+    registerPgPoolGauges('write', app.pg.write.pool)
+    registerPgPoolGauges('read', app.pg.read.pool)
   })
 }
 

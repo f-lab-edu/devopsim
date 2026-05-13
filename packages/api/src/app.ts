@@ -39,7 +39,7 @@ export function buildApp(opts: { logger?: boolean } = {}) {
   app.register(redisPlugin)
 
   app.after(() => {
-    const repo = pgItemRepository(app.pg.pool)
+    const repo = pgItemRepository({ read: app.pg.read.pool, write: app.pg.write.pool })
     const cache = app.redis ? redisItemCache(app.redis) : noopItemCache()
     const service = itemService(repo, cache, cacheMetrics)
     registerItemsTotalGauge(repo)
