@@ -14,4 +14,18 @@ spec:
       path: /metrics
       interval: {{ .Values.serviceMonitor.interval }}
       scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+      metricRelabelings:
+        # Node.js 내부 active handles/requests/resources — TCPSocketWrap/PipeWrap 등 디버깅용
+        - sourceLabels: [__name__]
+          regex: 'nodejs_active_(handles|requests|resources)(_total)?'
+          action: drop
+        # k8s probe(/health, /ready) + self-scrape(/metrics) 응답시간 분포는 의미 낮음.
+        # http_requests_total 은 유지 (APIDown 알람 의존).
+        - sourceLabels: [__name__, route]
+          regex: 'http_request_duration_seconds_(bucket|sum|count);(/health|/ready|/metrics)'
+          action: drop
+        # / 경로 404 (root 스캐너) — 트래픽/에러 통계 왜곡 방지
+        - sourceLabels: [route, status_code]
+          regex: '/;404'
+          action: drop
 {{- end }}
