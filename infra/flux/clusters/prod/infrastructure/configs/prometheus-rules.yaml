@@ -1,0 +1,119 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devopsim-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus-stack
+    role: alert-rules
+spec:
+  groups:
+    - name: api.rules
+      interval: 30s
+      rules:
+        - alert: APIDown
+          expr: up{job="serviceMonitor/api/api/0"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            service: api
+          annotations:
+            summary: "API Pod scrape failed for >1m"
+            description: "api Pod {{ $labels.pod }}의 /metrics scrape이 1분간 실패. Pod이 죽었거나 메트릭 노출 실패."
+
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(app_errors_total[5m]))
+              / sum(rate(http_requests_total[5m])) > 0.01
+          for: 5m
+          labels:
+            severity: warning
+            service: api
+          annotations:
+            summary: "API error rate > 1%"
+            description: "현재 에러율 {{ $value | humanizePercentage }} (5분 평균)"
+
+        - alert: HighLatencyP95
+          expr: |
+            histogram_quantile(0.95,
+              sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
+            ) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            service: api
+          annotations:
+            summary: "HTTP p95 latency > 500ms"
+            description: "현재 p95 = {{ $value | humanizeDuration }}"
+
+    - name: cache.rules
+      interval: 30s
+      rules:
+        - alert: CacheLowHitRatio
+          # 트래픽 없을 때 false positive 방지: 분모가 0.1 rps 이상일 때만
+          expr: |
+            (
+              sum(rate(cache_hits_total[10m]))
+                /
+              (sum(rate(cache_hits_total[10m])) + sum(rate(cache_misses_total[10m])))
+            ) < 0.5
+            and
+            (sum(rate(cache_hits_total[10m])) + sum(rate(cache_misses_total[10m]))) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+            service: api
+          annotations:
+            summary: "Cache hit ratio < 50% with traffic present"
+            description: "현재 hit ratio = {{ $value | humanizePercentage }}"
+
+    - name: db.rules
+      interval: 30s
+      rules:
+        - alert: DBPoolWaiting
+          expr: max(pg_pool_waiting_clients) > 0
+          for: 5m
+          labels:
+            severity: warning
+            service: api
+          annotations:
+            summary: "PG connection pool에 대기 client 발생"
+            description: "현재 waiting = {{ $value }}. 풀 max(10) 초과 시그널 — 풀 사이즈 검토 필요."
+
+        - alert: DBSlowQuery
+          expr: |
+            histogram_quantile(0.95,
+              sum by (le, operation) (rate(db_query_duration_seconds_bucket[5m]))
+            ) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+            service: api
+          annotations:
+            summary: "DB query p95 > 100ms ({{ $labels.operation }})"
+            description: "{{ $labels.operation }} 쿼리 p95 = {{ $value | humanizeDuration }}"
+
+    - name: prometheus.rules
+      interval: 30s
+      rules:
+        - alert: PrometheusHighMemory
+          # limit 2Gi = 2.147e9 bytes의 80% 이상
+          expr: process_resident_memory_bytes{job=~".*prometheus.*"} / 2.147e9 > 0.8
+          for: 10m
+          labels:
+            severity: warning
+            service: prometheus
+          annotations:
+            summary: "Prometheus 메모리 사용량 > 80% of limit"
+            description: "현재 {{ $value | humanizePercentage }}. cardinality 폭발 또는 query 부담 의심."
+
+        - alert: PrometheusScrapeFailure
+          # 타겟이 다운된 경우 (Watchdog 등 항상 up인 self는 제외)
+          expr: up == 0
+          for: 3m
+          labels:
+            severity: warning
+            service: prometheus
+          annotations:
+            summary: "Scrape target down: {{ $labels.job }}"
+            description: "{{ $labels.job }} 타겟이 3분간 scrape 실패"

@@ -94,7 +94,7 @@ spec:
           providers:
             - name: default
               orgId: 1
-              folder: ''
+              folder: ""
               type: file
               disableDeletion: false
               editable: true
@@ -121,7 +121,71 @@ spec:
               resources:
                 requests:
                   storage: 2Gi
-      # UI는 외부 노출 안 함 — port-forward 접근.
+        # ExternalSecret이 만든 K8s Secret을 Pod에 마운트
+        # → /etc/alertmanager/secrets/<secret-name>/url 에서 webhook URL 읽음
+        secrets:
+          - alertmanager-slack
+          - alertmanager-healthchecks
+
+      # 라우팅/receiver 설정. 기본은 'null' receiver(알림 무시)라 override 필수.
+      config:
+        global:
+          resolve_timeout: 5m
+        route:
+          # alertname/severity/namespace 조합 — 같은 류 알림 묶음
+          group_by: ["alertname", "severity", "namespace"]
+          group_wait: 30s # 첫 알림 전 대기 (그루핑 시간)
+          group_interval: 5m # 같은 group의 새 alert 추가 시 다음 알림 간격
+          repeat_interval: 4h # firing 지속 시 재알림 주기
+          receiver: slack-default
+          routes:
+            - matchers:
+                - severity = "critical"
+              receiver: slack-critical
+              group_wait: 10s
+              repeat_interval: 1h
+
+            - matchers:
+                - alertname = "Watchdog"
+              receiver: healthchecks-watchdog
+              group_wait: 0s
+              group_interval: 1m
+              repeat_interval: 1m
+
+        receivers:
+          - name: "null"
+
+          - name: healthchecks-watchdog
+            webhook_configs:
+              - url_file: /etc/alertmanager/secrets/alertmanager-healthchecks/url
+                send_resolved: false
+
+          - name: slack-default
+            slack_configs:
+              - api_url_file: /etc/alertmanager/secrets/alertmanager-slack/url
+                channel: "#devopsim-alerts"
+                send_resolved: true
+                title: "[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}"
+                text: |
+                  {{ range .Alerts -}}
+                  *severity*: {{ .Labels.severity }}
+                  *summary*: {{ .Annotations.summary }}
+                  *desc*: {{ .Annotations.description }}
+                  {{ end }}
+
+          - name: slack-critical
+            slack_configs:
+              - api_url_file: /etc/alertmanager/secrets/alertmanager-slack/url
+                channel: "#devopsim-alerts"
+                send_resolved: true
+                title: "🔥 [CRITICAL] {{ .CommonLabels.alertname }}"
+                text: |
+                  <!here>
+                  {{ range .Alerts -}}
+                  *summary*: {{ .Annotations.summary }}
+                  *desc*: {{ .Annotations.description }}
+                  {{ end }}
+
       ingress:
         enabled: false
 
