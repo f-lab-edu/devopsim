@@ -21,6 +21,13 @@ spec:
         - key: karpenter.k8s.aws/instance-generation
           operator: Gt
           values: ["2"]
+        # nano/micro/small 제외 — AWS VPC CNI의 Pod density 한계로
+        # t3a.small은 노드당 8 Pod이 상한 (DaemonSet 5개 + system pods로 가득참).
+        # 알로이 같은 DaemonSet이 그 노드에 못 올라가 로그 손실 발생.
+        # docs/monitoring/troubleshooting/karpenter-pod-density.md 참고.
+        - key: karpenter.k8s.aws/instance-size
+          operator: NotIn
+          values: ["nano", "micro", "small"]
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass
