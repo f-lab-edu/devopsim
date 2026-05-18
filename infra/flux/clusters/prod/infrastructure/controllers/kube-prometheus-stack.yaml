@@ -86,6 +86,18 @@ spec:
     grafana:
       adminPassword: admin
       defaultDashboardsEnabled: true
+
+      # Loki를 datasource로 추가 — sidecar(datasource provisioner)가 자동 감지.
+      # kube-prometheus-stack은 기본 Prometheus만 등록하므로 Loki는 명시.
+      additionalDataSources:
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki.monitoring.svc.cluster.local:3100
+          isDefault: false
+          jsonData:
+            maxLines: 1000
+
       dashboards:
         default:
           prometheus-all-metrics:

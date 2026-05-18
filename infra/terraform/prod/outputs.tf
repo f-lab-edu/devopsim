@@ -103,3 +103,23 @@ output "rds_master_user_secret_name" {
   description = "Secrets Manager 시크릿 이름 (ExternalSecret remoteRef.key에 사용)"
   value       = module.rds.master_user_secret_name
 }
+
+output "loki_role_arn" {
+  description = "Loki IRSA Role ARN — HelmRelease values의 serviceAccount.annotations에 사용"
+  value       = module.loki.role_arn
+}
+
+output "loki_bucket_chunks" {
+  description = "Loki chunks 버킷"
+  value       = module.loki.bucket_chunks
+}
+
+output "loki_bucket_ruler" {
+  description = "Loki ruler 버킷"
+  value       = module.loki.bucket_ruler
+}
+
+output "loki_bucket_admin" {
+  description = "Loki admin 버킷"
+  value       = module.loki.bucket_admin
+}

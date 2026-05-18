@@ -5,3 +5,5 @@ resources:
   - karpenter.yaml
   - reloader.yaml
   - kube-prometheus-stack.yaml
+  - loki.yaml
+  - alloy.yaml

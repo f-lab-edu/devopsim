@@ -60,3 +60,12 @@ module "rds" {
   create_replica             = var.rds_create_replica
   tags                       = local.tags
 }
+
+module "loki" {
+  source = "../modules/loki"
+
+  name              = local.name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+  tags              = local.tags
+}

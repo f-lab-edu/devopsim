@@ -1,0 +1,165 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: grafana-community
+  namespace: monitoring
+spec:
+  interval: 1h
+  url: https://grafana-community.github.io/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: loki
+  namespace: monitoring
+spec:
+  interval: 5m
+  timeout: 15m
+  chart:
+    spec:
+      chart: loki
+      version: "16.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana-community
+        namespace: monitoring
+  values:
+    deploymentMode: Monolithic # SingleBinary
+
+    loki:
+      auth_enabled: false
+
+      # Helm chart 외부의 server config (대시보드/룰러 등). 기본값 그대로.
+      commonConfig:
+        replication_factor: 1   # SingleBinary는 1. SSD로 가면 3.
+
+      # ── Storage ────────────────────────────────────────────────────────
+      # S3 + TSDB shipper. Pod 자체 PVC는 WAL + 임시 chunk + 인덱스 캐시용.
+      storage:
+        type: s3
+        bucketNames:
+          chunks: devopsim-prod-loki-chunks
+          ruler:  devopsim-prod-loki-ruler
+          admin:  devopsim-prod-loki-admin
+        s3:
+          region: us-east-2
+          endpoint: s3.us-east-2.amazonaws.com
+          s3ForcePathStyle: false
+          insecure: false
+
+      # ── Schema ─────────────────────────────────────────────────────────
+      # 한 번 적은 from: 날짜는 못 바꿈. 시작은 과거로 두기.
+      schemaConfig:
+        configs:
+          - from: 2026-01-01
+            store: tsdb
+            object_store: s3
+            schema: v13
+            index:
+              prefix: index_
+              period: 24h
+
+      # ── Limits ────────────────────────────────────────────────────────
+      # default(max_streams_per_user: 0)는 무제한 → 폭발 위험.
+      # 우리 단계에선 5000 streams면 충분히 여유.
+      limits_config:
+        ingestion_rate_mb: 8
+        ingestion_burst_size_mb: 16
+        max_streams_per_user: 5000
+        max_global_streams_per_user: 5000
+        max_query_length: 168h         # 7일 (retention과 일치)
+        max_query_parallelism: 16
+        retention_period: 168h         # 7일
+        reject_old_samples: true
+        reject_old_samples_max_age: 12h
+        # v13의 structured metadata 활성화. trace_id 같은 cardinality 큰 값을 라벨이 아닌 metadata로.
+        allow_structured_metadata: true
+        volume_enabled: true           # /loki/api/v1/index/volume — Grafana log volume panel용
+
+      # ── Compactor (retention 처리) ─────────────────────────────────────
+      # retention_enabled: false면 위 retention_period 적어도 데이터 안 지워짐.
+      compactor:
+        retention_enabled: true
+        retention_delete_delay: 2h
+        retention_delete_worker_count: 150
+        compaction_interval: 10m
+        working_directory: /var/loki/compactor
+        delete_request_store: s3
+
+      # ── Server ────────────────────────────────────────────────────────
+      server:
+        http_listen_port: 3100
+        grpc_listen_port: 9095
+        log_level: info
+
+      analytics:
+        reporting_enabled: false
+
+      # Ruler: 일단 활성화만 (룰은 별도 추가 예정)
+      rulerConfig:
+        storage:
+          type: s3
+          s3:
+            bucketnames: devopsim-prod-loki-ruler
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SingleBinary 모드 전용 설정.
+    # ─────────────────────────────────────────────────────────────────────────
+    singleBinary:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          memory: 1Gi
+      persistence:
+        enabled: true
+        size: 10Gi
+        storageClass: gp3
+
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: karpenter.k8s.aws/instance-size
+                    operator: In
+                    values: ["medium"]
+
+    # SingleBinary 모드에선 아래 컴포넌트들을 명시적으로 비활성화.
+    # default values는 read/write/backend도 같이 띄우려고 해서 충돌.
+    write:
+      replicas: 0
+    read:
+      replicas: 0
+    backend:
+      replicas: 0
+
+    # gateway(nginx 프록시) 비활성. SingleBinary면 클라이언트가 loki Service 직접.
+    gateway:
+      enabled: false
+
+    # MinIO 비활성 (S3 외부 사용 중).
+    minio:
+      enabled: false
+
+    # 캐시 컴포넌트 (memcached). SingleBinary에선 inmem이라 외부 캐시 불필요.
+    chunksCache:
+      enabled: false
+    resultsCache:
+      enabled: false
+
+    # 테스트용 인프라 끔.
+    test:
+      enabled: false
+    lokiCanary:
+      enabled: false
+
+    # ServiceAccount — IRSA annotation, s3 권한
+    # Trust policy sub: system:serviceaccount:monitoring:loki
+    serviceAccount:
+      create: true
+      name: loki
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::893286712531:role/devopsim-prod-loki-role
