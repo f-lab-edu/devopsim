@@ -1,0 +1,146 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  interval: 1h
+  url: https://grafana.github.io/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: alloy
+  namespace: monitoring
+spec:
+  interval: 5m
+  timeout: 10m
+  chart:
+    spec:
+      chart: alloy
+      version: "1.8.1"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: monitoring
+  values:
+    # ── DaemonSet 컨트롤러 + 노드 tolerations ──────────────────────────────
+    controller:
+      type: daemonset
+      # DaemonSet은 모든 노드에서 로그를 수집해야 함.
+      # K8s가 system taint(not-ready/disk-pressure/...)는 자동 tolerate해주지만,
+      # Karpenter built-in taint는 자동 처리 안 돼서 명시적으로 잡음.
+      #   NoSchedule  → karpenter.sh/disruption (consolidation 대상 노드)
+      #   NoExecute   → karpenter.sh/unregistered (신규 노드의 등록 직전 단계)
+      # operator: Exists + key 생략 = 해당 effect의 모든 taint 와일드카드 tolerate.
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule # consolidation 종료 직전까지 수집하기 위해
+        - operator: Exists
+          effect: NoExecute # 카펜터 노드 새로 뜨자마자 적용하기 위해
+
+    alloy:
+      # EKS는 containerd라 docker mount는 불필요 — false로 명시.
+      mounts:
+        varlog: true # /var/log 마운트 (Pod 로그 tail에 필요)
+        dockercontainers: false # EKS containerd
+
+      # alloy 컨테이너 resources (alloy.resources 위치 주의 — top-level 아님).
+      resources:
+        requests:
+          cpu: 50m
+          memory: 100Mi
+        limits:
+          memory: 300Mi
+
+      # ── 핵심: River config (component-based) ───────────────────────────
+      # Promtail의 YAML scrape_configs와 모양이 완전히 다르다.
+      # 각 component는 export로 다음 component에 데이터 흘림.
+      configMap:
+        create: true
+        content: |
+          // (1) K8s SD — Pod 목록.
+          discovery.kubernetes "pods" {
+            role = "pod"
+          }
+
+          // (2) 라벨 매핑 — meta 라벨을 우리 stream 라벨로.
+          //
+          //   ⚠ stream cardinality 폭발 방지:
+          //   - pod_template_hash, controller_uid, node_name 같은 가변/고cardinality 라벨은 박지 않음.
+          //   - namespace / pod / container / app / level 정도가 적정.
+          discovery.relabel "pods" {
+            targets = discovery.kubernetes.pods.targets
+
+            rule {
+              source_labels = ["__meta_kubernetes_namespace"]
+              target_label  = "namespace"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_name"]
+              target_label  = "pod"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_name"]
+              target_label  = "container"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+              target_label  = "app"
+            }
+
+            // 우리가 관심 있는 namespace만 수집. 다른 namespace는 무시 →
+            // kube-system noise 차단 + stream 수 절감.
+            rule {
+              source_labels = ["namespace"]
+              regex         = "api|detector|monitoring"
+              action        = "keep"
+            }
+          }
+
+          // (3) Pod 로그 tail (kubelet API 통한 read가 아니라 직접 file tail).
+          loki.source.kubernetes "pods" {
+            targets    = discovery.relabel.pods.output
+            forward_to = [loki.process.app.receiver]
+          }
+
+          // (4) 가공 — JSON 파싱 + level 라벨 추출.
+          //
+          //   devopsim api는 pino JSON 로그 — 파싱하면 level/msg 등을 꺼낼 수 있다.
+          //   다른 컴포넌트(loki 자체, alloy 자체)는 logfmt or plain text → json parse 실패는
+          //   조용히 무시되니 안전.
+          loki.process "app" {
+            forward_to = [loki.write.default.receiver]
+
+            // JSON 파싱: level 필드만 추출.
+            stage.json {
+              expressions = {
+                level = "level",
+              }
+            }
+
+            // 추출한 level을 stream 라벨로 승격. enum이라 cardinality 안전.
+            stage.labels {
+              values = {
+                level = "",
+              }
+            }
+
+            // 8KB 넘는 라인 drop — stack trace 폭주 방어.
+            // 단위는 KB/MB 대문자 (Go units 라이브러리). 소문자 kb는 invalid.
+            stage.drop {
+              longer_than          = "8KB"
+              drop_counter_reason  = "line_too_long"
+            }
+          }
+
+          // (5) Loki로 전송.
+          loki.write "default" {
+            endpoint {
+              url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+            }
+          }
+
+    # ServiceMonitor — Alloy 자체 메트릭을 Prometheus가 scrape (수집량 / 에러 / WAL 상태).
+    serviceMonitor:
+      enabled: true
