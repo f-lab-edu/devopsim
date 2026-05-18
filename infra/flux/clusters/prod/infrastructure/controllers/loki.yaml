@@ -49,9 +49,11 @@ spec:
 
       # ── Schema ─────────────────────────────────────────────────────────
       # 한 번 적은 from: 날짜는 못 바꿈. 시작은 과거로 두기.
+      # ⚠ from은 반드시 따옴표. YAML이 무quote ISO date를 timestamp(RFC3339)로
+      # 자동 변환 → Loki는 date 문자열 기대 → "extra text: T00:00:00Z" 파싱 실패.
       schemaConfig:
         configs:
-          - from: 2026-01-01
+          - from: "2026-01-01"
             store: tsdb
             object_store: s3
             schema: v13
