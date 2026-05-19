@@ -75,3 +75,9 @@ variable "rds_create_replica" {
   type        = bool
   default     = true
 }
+
+# DNS
+variable "domain" {
+  description = "Route53로 관리할 루트 도메인 (예: devopsim.cloud)"
+  type        = string
+}
