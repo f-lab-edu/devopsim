@@ -1,8 +1,12 @@
-# Gateway API HTTPRoute — api.devopsim.cloud로 들어오는 모든 path를 api Service로.
+# api.devopsim.cloud HTTPS 트래픽 → api Service.
+#
+# HTTP 트래픽은 별도 HTTPRoute(api-http-redirect)가 301 redirect 처리.
+# 이 HTTPRoute는 websecure(443) listener에만 부착해 HTTPS 트래픽만 받음.
 #
 # 이 manifest 하나가 두 자동화를 트리거:
-#   1. external-dns: hostnames를 보고 Route53 A 레코드(api.devopsim.cloud → NLB) 생성
-#   2. cert-manager: Gateway annotation + 매칭되는 websecure listener의 hostname 보고 Certificate 자동 생성 → HTTP-01 challenge → api-tls Secret 발급
+#   1. external-dns: hostnames → Route53 A 레코드(api.devopsim.cloud → NLB)
+#   2. cert-manager: Gateway annotation + websecure listener hostname 매칭 →
+#      Certificate 자동 생성 → HTTP-01 challenge → api-tls Secret 발급
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -12,8 +16,7 @@ spec:
   parentRefs:
     - name: traefik-gateway
       namespace: traefik
-      # Gateway에는 web(80) + websecure(443) 두 listener.
-      # sectionName 없이 둘 다 attach → HTTP/HTTPS 둘 다 라우팅. ->  HTTPRoute가 매칭되는 모든 listener에 자동 attach
+      sectionName: websecure # HTTPS listener에만 부착
   hostnames:
     - api.devopsim.cloud
   rules:
