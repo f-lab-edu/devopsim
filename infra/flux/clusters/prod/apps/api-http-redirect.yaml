@@ -1,0 +1,25 @@
+# HTTP(80) → HTTPS(443) 301 redirect.
+#
+# web(HTTP) listener에 부착해 들어오는 HTTP 트래픽을 HTTPS로 강제 전환.
+# ACME HTTP-01 challenge path(/.well-known/acme-challenge/*)는 cert-manager가
+# 자기 HTTPRoute("cm-acme-http-solver-*")로 가로채므로 redirect에 영향 없음
+# (Gateway API path matching에서 더 긴 prefix가 우선).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api-http-redirect
+  namespace: api
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web # HTTP listener에만 부착
+  hostnames:
+    - api.devopsim.cloud
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+      # filter가 terminal(redirect)이라 backendRefs 불필요.

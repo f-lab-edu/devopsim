@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - api.yaml
   - api-httproute.yaml
+  - api-http-redirect.yaml
