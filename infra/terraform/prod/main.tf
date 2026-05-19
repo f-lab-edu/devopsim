@@ -69,3 +69,10 @@ module "loki" {
   oidc_provider_url = module.eks.oidc_provider_url
   tags              = local.tags
 }
+
+module "dns" {
+  source = "../modules/dns"
+
+  domain = var.domain
+  tags   = local.tags
+}

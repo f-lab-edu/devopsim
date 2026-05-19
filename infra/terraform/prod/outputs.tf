@@ -123,3 +123,20 @@ output "loki_bucket_admin" {
   description = "Loki admin 버킷"
   value       = module.loki.bucket_admin
 }
+
+# ── DNS ──────────────────────────────────────────────────────────────────────
+
+output "dns_zone_id" {
+  description = "Route53 hosted zone ID (record 추가 시 사용)"
+  value       = module.dns.zone_id
+}
+
+output "dns_zone_name" {
+  description = "Hosted zone domain"
+  value       = module.dns.zone_name
+}
+
+output "dns_name_servers" {
+  description = "Registrar(가비아) 콘솔의 네임서버 설정에 입력할 NS 4개"
+  value       = module.dns.name_servers
+}
