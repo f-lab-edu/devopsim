@@ -14,3 +14,9 @@ dist/
 .terraform.lock.hcl
 *.tfvars
 !*.tfvars.example
+
+.private/*
+
+# OS / IDE / Claude Code 로컬 임시
+.DS_Store
+.claude/scheduled_tasks.lock
