@@ -11,14 +11,10 @@ redis:
 serviceMonitor:
   enabled: true
 
+# ALB Ingress는 Traefik(NLB + Gateway API HTTPRoute)로 대체됨 → 비활성.
+# 외부 노출은 infra/flux/.../apps/api-httproute.yaml이 담당.
 ingress:
-  enabled: true
-  className: alb
-  host: ""
-  annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/healthcheck-path: /health
+  enabled: false
 
 resources:
   requests:
