@@ -120,14 +120,10 @@ spec:
               editable: true
               options:
                 path: /var/lib/grafana/dashboards/default
+      # ALB Ingress는 Traefik(NLB + Gateway API)로 대체됨 → 비활성.
+      # 외부 노출은 apps/grafana-httproute.yaml의 HTTPRoute가 담당.
       ingress:
-        enabled: true
-        ingressClassName: alb
-        annotations:
-          alb.ingress.kubernetes.io/scheme: internet-facing
-          alb.ingress.kubernetes.io/target-type: ip
-          alb.ingress.kubernetes.io/group.name: monitoring
-        path: /
+        enabled: false
 
     # ── Alertmanager ───────────────────────────────────────────────────
     alertmanager:
