@@ -53,7 +53,7 @@ spec:
           protocol: HTTP
           namespacePolicy:
             from: All
-        # api.devopsim.cloud HTTPS listener. 다른 host 늘면 listener 추가.
+        # api.devopsim.cloud HTTPS listener. host별로 분리 (per-host cert 패턴).
         websecure:
           port: 8443
           protocol: HTTPS
@@ -62,6 +62,16 @@ spec:
             from: All
           certificateRefs:
             - name: api-tls
+              kind: Secret
+        # grafana.devopsim.cloud HTTPS listener.
+        grafana-https:
+          port: 8443
+          protocol: HTTPS
+          hostname: grafana.devopsim.cloud
+          namespacePolicy:
+            from: All
+          certificateRefs:
+            - name: grafana-tls
               kind: Secret
     gatewayClass:
       enabled: true
