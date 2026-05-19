@@ -12,3 +12,8 @@ output "name_servers" {
   description = "Registrar(가비아 등) 콘솔의 네임서버 설정에 입력할 NS 4개"
   value       = aws_route53_zone.this.name_servers
 }
+
+output "external_dns_role_arn" {
+  description = "external-dns IRSA Role ARN (HelmRelease serviceAccount.annotations에 사용)"
+  value       = aws_iam_role.external_dns.arn
+}
