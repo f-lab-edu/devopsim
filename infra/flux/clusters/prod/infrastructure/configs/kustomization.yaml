@@ -8,3 +8,4 @@ resources:
   - grafana-dashboard-api.yaml
   - grafana-dashboard-prometheus-cardinality.yaml
   - prometheus-rules.yaml
+  - cert-manager-issuers.yaml
