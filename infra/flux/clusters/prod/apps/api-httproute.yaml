@@ -16,7 +16,7 @@ spec:
   parentRefs:
     - name: traefik-gateway
       namespace: traefik
-      sectionName: websecure # HTTPS listener에만 부착
+      sectionName: api-https # api HTTPS listener에만 부착
   hostnames:
     - api.devopsim.cloud
   rules:

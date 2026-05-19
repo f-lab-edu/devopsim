@@ -48,14 +48,15 @@ spec:
         # staging 검증 끝나 prod로 전환 — browser-trusted cert 발급.
         cert-manager.io/cluster-issuer: letsencrypt-prod
       listeners:
-        # HTTP-01 challenge용. 모든 namespace에서 라우트 부착 허용.
+        # cert-manager HTTP-01 challenge (인증서 갱신시 필요)
+        # HTTP → HTTPS 301 redirect 시 필요
         web:
           port: 8000
           protocol: HTTP
           namespacePolicy:
             from: All
-        # api.devopsim.cloud HTTPS listener. host별로 분리 (per-host cert 패턴).
-        websecure:
+        # api.devopsim.cloud HTTPS listener
+        api-https:
           port: 8443
           protocol: HTTPS
           hostname: api.devopsim.cloud
