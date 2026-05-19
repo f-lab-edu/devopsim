@@ -9,3 +9,4 @@ resources:
   - alloy.yaml
   # Gateway API CRDs는 Traefik / cert-manager의 의존성 → controller보다 먼저 적용.
   - gateway-api-crds.yaml
+  - cert-manager.yaml
