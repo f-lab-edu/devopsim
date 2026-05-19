@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-dns
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: external-dns
+  namespace: external-dns
+spec:
+  interval: 1h
+  url: https://kubernetes-sigs.github.io/external-dns
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-dns
+  namespace: external-dns
+spec:
+  interval: 5m
+  timeout: 10m
+  chart:
+    spec:
+      chart: external-dns
+      version: "1.21.1"
+      sourceRef:
+        kind: HelmRepository
+        name: external-dns
+        namespace: external-dns
+  values:
+    # provider: Route53
+    provider:
+      name: aws
+
+    # gateway-* 소스가 Gateway API의 Gateway/HTTPRoute hostname을 자동 감지.
+    # service / ingress는 비활성 — Gateway API 통합 패턴으로 단일화.
+    sources:
+      - gateway-httproute
+      - gateway-grpcroute
+      # gateway-tcproute, gateway-tlsroute, gateway-udproute, ingress, service
+
+    # upsert-only: 추가/업데이트만, K8s에 없는 record라도 절대 삭제 X (보수적).
+    policy: upsert-only
+
+    # 우리 hosted zone에만 한정해서 list (안전 + 성능)
+    domainFilters:
+      - devopsim.cloud
+    zoneIdFilters: [] # 필요 시 zone_id
+
+    txtOwnerId: devopsim-prod # external-dns가 만든 record를 TXT 레코드로 표식
+    txtPrefix: "_extdns-" # TXT record name prefix (충돌 방지)
+
+    # AWS 설정 (IRSA — 권한은 Terraform module dns에서 부여)
+    aws:
+      region: us-east-2
+      batchChangeSize: 1000
+      zoneType: public
+
+    serviceAccount:
+      create: true
+      name: external-dns
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::893286712531:role/devopsim-prod-external-dns-role
+
+    nodeSelector:
+      karpenter.sh/nodepool: default
+
+    replicas: 1
+
+    resources:
+      requests:
+        cpu: 20m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+
+    serviceMonitor:
+      enabled: true
+    logLevel: info
+    logFormat: text
+
+    interval: 1m

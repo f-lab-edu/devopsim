@@ -140,3 +140,8 @@ output "dns_name_servers" {
   description = "Registrar(가비아) 콘솔의 네임서버 설정에 입력할 NS 4개"
   value       = module.dns.name_servers
 }
+
+output "external_dns_role_arn" {
+  description = "external-dns IRSA Role ARN — HelmRelease values에 사용"
+  value       = module.dns.external_dns_role_arn
+}

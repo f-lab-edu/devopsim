@@ -11,3 +11,4 @@ resources:
   - gateway-api-crds.yaml
   - cert-manager.yaml
   - traefik.yaml
+  - external-dns.yaml

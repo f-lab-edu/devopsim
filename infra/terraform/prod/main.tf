@@ -73,6 +73,9 @@ module "loki" {
 module "dns" {
   source = "../modules/dns"
 
-  domain = var.domain
-  tags   = local.tags
+  name              = local.name
+  domain            = var.domain
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+  tags              = local.tags
 }
