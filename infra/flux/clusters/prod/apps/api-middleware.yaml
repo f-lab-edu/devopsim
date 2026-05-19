@@ -1,0 +1,17 @@
+# Traefik Middleware — api host rate limit.
+#
+# Gateway API HTTPRoute의 표준 filter에는 rate limit이 없어서 Traefik의
+# vendor CRD(Middleware)로 풀고 HTTPRoute의 extensionRef로 참조.
+#
+# sourceCriterion 생략 시 connection source IP 사용 — NLB의 proxy-protocol v2가
+# 진짜 client IP를 전달하므로 IP-based rate limit이 정확하게 작동.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-ratelimit
+  namespace: api
+spec:
+  rateLimit:
+    average: 100 # 클라당 평균 100 req/s
+    burst: 200 # 순간 200까지 허용
+    period: 1s

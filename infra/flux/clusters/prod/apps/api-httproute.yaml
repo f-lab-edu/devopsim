@@ -24,6 +24,13 @@ spec:
         - path:
             type: PathPrefix
             value: /
+      filters:
+        # Traefik Middleware 참조 — Gateway API 표준엔 rate limit 없어 ExtensionRef로 vendor 확장.
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: api-ratelimit # api ns의 Middleware
       backendRefs:
         - name: api
           port: 80 # api Service 포트, Traefik이 TLS 종료 후 평문으로 보내는 대상

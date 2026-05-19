@@ -36,7 +36,8 @@ spec:
       kubernetesIngress:
         enabled: false
       kubernetesCRD:
-        enabled: false # Traefik 전용 CRD (IngressRoute, Middleware 등)
+        enabled: true # Traefik 전용 CRD provider — Middleware(rate limit, headers, auth 등) 처리.
+        # IngressRoute는 사용 안 하지만 같은 provider라 같이 켜짐.
 
     # Gateway / GatewayClass
     # cert-manager.io/cluster-issuer annotation으로 Gateway-shim 활성화 → listener의
