@@ -4,5 +4,6 @@ resources:
   - api.yaml
   - api-httproute.yaml
   - api-http-redirect.yaml
+  - api-middleware.yaml
   - grafana-httproute.yaml
   - grafana-http-redirect.yaml
