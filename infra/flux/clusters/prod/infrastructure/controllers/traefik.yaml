@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  interval: 1h
+  url: https://traefik.github.io/charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  interval: 5m
+  timeout: 10m
+  chart:
+    spec:
+      chart: traefik
+      version: "40.2.0"
+      sourceRef:
+        kind: HelmRepository
+        name: traefik
+        namespace: traefik
+  values:
+    # Provider: Gateway API (Ingress 대신 HTTPRoute 사용)
+    providers:
+      kubernetesGateway:
+        enabled: true
+      kubernetesIngress:
+        enabled: false
+      kubernetesCRD:
+        enabled: false # Traefik 전용 CRD (IngressRoute, Middleware 등)
+
+    # Gateway / GatewayClass default
+    gateway:
+      enabled: true
+      # listeners.web (port 8000 컨테이너 = LB 80) + listeners.websecure (443)
+      # websecure는 default disabled. TLS cert 준비된 후 별도 Gateway에서 활성.
+    gatewayClass:
+      enabled: true
+
+    # Service: NLB target-type=ip, internet-facing
+    service:
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: external
+        service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+        service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+        # Proxy Protocol: NLB가 TCP 데이터 앞에 진짜 IP를 적어서 보내고, Traefik이 그걸 읽어서 원본 IP를 복원
+        service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+      spec:
+        type: LoadBalancer
+
+    # Ports, entryPoints
+    ports:
+      web:
+        port: 8000 # 컨테이너 port
+        exposedPort: 80 # NLB → 80
+        protocol: TCP
+        # NLB가 proxy protocol v2로 client IP 전달.
+        proxyProtocol:
+          trustedIPs: ["0.0.0.0/0"] # NLB만 우리 앞에 있으므로 모든 source 신뢰
+        # 80 → 443 자동 redirect, HTTP-01 challenge 통과 후 활성.
+        # redirectTo:
+        #   port: websecure
+        #   scheme: https
+      websecure:
+        port: 8443
+        exposedPort: 443
+        protocol: TCP
+        proxyProtocol:
+          trustedIPs: ["0.0.0.0/0"]
+
+    # ServiceMonitor: Traefik 자체 메트릭 scrape
+    metrics:
+      prometheus:
+        serviceMonitor:
+          enabled: true
+
+    # 배치 & 가용성
+    deployment:
+      replicas: 2
+
+    # Karpenter 노드에만 배치 + 두 replica를 다른 노드에 분산 (drain 시 동시에 죽는 거 방지)
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: karpenter.sh/nodepool
+                  operator: Exists
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [traefik]
+            topologyKey: kubernetes.io/hostname
+
+    # Karpenter consolidation으로 노드 drain 시에도 최소 1 Pod 유지
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
+
+    # Traefik dashboard (internal access only)
+    ingressRoute:
+      dashboard:
+        enabled: false # port-forward only
+
+    # 로그: 기본 access log 끄고 필요 true —> Loki 비용
+    logs:
+      general:
+        level: INFO
+      access:
+        enabled: false
