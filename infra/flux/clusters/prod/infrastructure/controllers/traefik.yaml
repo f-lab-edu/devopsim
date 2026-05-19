@@ -38,11 +38,31 @@ spec:
       kubernetesCRD:
         enabled: false # Traefik 전용 CRD (IngressRoute, Middleware 등)
 
-    # Gateway / GatewayClass default
+    # Gateway / GatewayClass
+    # cert-manager.io/cluster-issuer annotation으로 Gateway-shim 활성화 → listener의
+    # hostname/certificateRefs 보고 Certificate 자동 생성.
     gateway:
       enabled: true
-      # listeners.web (port 8000 컨테이너 = LB 80) + listeners.websecure (443)
-      # websecure는 default disabled. TLS cert 준비된 후 별도 Gateway에서 활성.
+      annotations:
+        # staging으로 시작 → 검증 후 letsencrypt-prod로 교체.
+        cert-manager.io/cluster-issuer: letsencrypt-staging
+      listeners:
+        # HTTP-01 challenge용. 모든 namespace에서 라우트 부착 허용.
+        web:
+          port: 8000
+          protocol: HTTP
+          namespacePolicy:
+            from: All
+        # api.devopsim.cloud HTTPS listener. 다른 host 늘면 listener 추가.
+        websecure:
+          port: 8443
+          protocol: HTTPS
+          hostname: api.devopsim.cloud
+          namespacePolicy:
+            from: All
+          certificateRefs:
+            - name: api-tls
+              kind: Secret
     gatewayClass:
       enabled: true
 
