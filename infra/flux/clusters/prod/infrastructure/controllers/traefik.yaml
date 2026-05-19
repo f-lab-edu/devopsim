@@ -44,8 +44,8 @@ spec:
     gateway:
       enabled: true
       annotations:
-        # staging으로 시작 → 검증 후 letsencrypt-prod로 교체.
-        cert-manager.io/cluster-issuer: letsencrypt-staging
+        # staging 검증 끝나 prod로 전환 — browser-trusted cert 발급.
+        cert-manager.io/cluster-issuer: letsencrypt-prod
       listeners:
         # HTTP-01 challenge용. 모든 namespace에서 라우트 부착 허용.
         web:
