@@ -7,6 +7,12 @@ dist/
 .plan/
 .claude/session-log.md
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
 # Terraform
 *.tfstate
 *.tfstate.*
