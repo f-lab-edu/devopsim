@@ -7,6 +7,7 @@ const MAX_DB_BURST = 100
 const MAX_LEAK_MB_PER_TICK = 100
 const MAX_LEAK_INTERVAL_MS = 10_000
 const MIN_LEAK_INTERVAL_MS = 100
+const MAX_CRASH_DELAY_MS = 5_000
 
 let memoryLeakInterval: NodeJS.Timeout | null = null
 let memoryLeakBuffers: Buffer[] = []
@@ -134,5 +135,20 @@ export default async function chaosRoute(app: FastifyInstance) {
     const releasedTicks = memoryLeakBuffers.length
     memoryLeakBuffers = []
     return reply.send({ status: 'stopped', releasedTicks })
+  })
+
+  // ── Crash ──────────────────────────────────────────────────────────
+  // POST /chaos/crash?delayMs=100 → setTimeout 후 process.exit(1).
+  // 연속 호출로 CrashLoopBackOff 유도 (K8s Event reason=BackOff).
+  app.post<{ Querystring: { delayMs?: string } }>('/chaos/crash', async (req, reply) => {
+    if (process.env.CHAOS_DANGEROUS_ENABLED !== 'true') {
+      return reply.code(403).send({ error: 'CHAOS_DANGEROUS_ENABLED is not set' })
+    }
+    const delayMs = Math.min(Math.max(Number(req.query.delayMs ?? 100), 0), MAX_CRASH_DELAY_MS)
+    setTimeout(() => {
+      req.log.warn({ delayMs }, 'chaos crash exiting')
+      process.exit(1)
+    }, delayMs)
+    return reply.code(202).send({ status: 'exiting', delayMs })
   })
 }

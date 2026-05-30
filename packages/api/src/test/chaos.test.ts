@@ -72,3 +72,49 @@ describe('POST /chaos/memory-leak', () => {
     expect(res.statusCode).toBe(404)
   })
 })
+
+describe('POST /chaos/crash', () => {
+  let app: FastifyInstance
+  let exitSpy: ReturnType<typeof vi.spyOn>
+  const originalFlag = process.env.CHAOS_DANGEROUS_ENABLED
+
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never)
+    app = await createTestApp()
+  })
+
+  afterEach(async () => {
+    vi.clearAllTimers()
+    vi.useRealTimers()
+    exitSpy.mockRestore()
+    await app.close()
+    if (originalFlag === undefined) {
+      delete process.env.CHAOS_DANGEROUS_ENABLED
+    } else {
+      process.env.CHAOS_DANGEROUS_ENABLED = originalFlag
+    }
+  })
+
+  test('CHAOS_DANGEROUS_ENABLED 미설정 → 403', async () => {
+    delete process.env.CHAOS_DANGEROUS_ENABLED
+    const res = await app.inject({ method: 'POST', url: '/chaos/crash' })
+    expect(res.statusCode).toBe(403)
+  })
+
+  test('정상 → 202 + delayMs 후 process.exit(1)', async () => {
+    process.env.CHAOS_DANGEROUS_ENABLED = 'true'
+    const res = await app.inject({ method: 'POST', url: '/chaos/crash?delayMs=100' })
+    expect(res.statusCode).toBe(202)
+    expect(res.json()).toMatchObject({ status: 'exiting', delayMs: 100 })
+    expect(exitSpy).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(100)
+    expect(exitSpy).toHaveBeenCalledWith(1)
+  })
+
+  test('파라미터 clamping', async () => {
+    process.env.CHAOS_DANGEROUS_ENABLED = 'true'
+    const res = await app.inject({ method: 'POST', url: '/chaos/crash?delayMs=99999' })
+    expect(res.json().delayMs).toBe(5000)
+  })
+})
