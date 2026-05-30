@@ -24,6 +24,9 @@ apiSecretName: api-secret
 redis:
   url: ""
 
+# chaos OOMKilled/crash 등 위험한 chaos endpoint 활성화 (시뮬레이션 환경 전용)
+chaosDangerousEnabled: false
+
 # Prometheus ServiceMonitor — 클러스터에 prometheus-operator가 있을 때만 enable.
 serviceMonitor:
   enabled: false
