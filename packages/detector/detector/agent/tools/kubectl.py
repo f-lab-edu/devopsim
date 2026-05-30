@@ -68,9 +68,7 @@ class KubectlLogsInput(BaseModel):
 
 def make_kubectl_logs_tool(k8s: KubernetesPort) -> Tool:
     async def handler(input: KubectlLogsInput) -> str:
-        return await k8s.logs(
-            input.namespace, input.pod, input.container, input.tail_lines, input.previous
-        )
+        return await k8s.logs(input.namespace, input.pod, input.container, input.tail_lines, input.previous)
 
     return Tool(
         name="kubectl_logs",

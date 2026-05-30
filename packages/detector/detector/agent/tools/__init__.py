@@ -8,10 +8,10 @@ from .kubectl import (
 )
 
 __all__ = [
-    "Tool",
     "KubernetesPort",
-    "make_kubectl_get_tool",
+    "Tool",
     "make_kubectl_describe_tool",
-    "make_kubectl_logs_tool",
     "make_kubectl_events_tool",
+    "make_kubectl_get_tool",
+    "make_kubectl_logs_tool",
 ]
