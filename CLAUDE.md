@@ -23,6 +23,26 @@ refactor: 리팩토링
 test:     테스트
 ```
 
+## Python 패키지 관리 (강제 규칙)
+
+`packages/detector/` 등 Python 패키지는 **uv만 사용**한다. pip / poetry / pipenv 금지.
+
+```bash
+# 의존성 관리
+uv add <pkg>              # 의존성 추가 (pyproject.toml + uv.lock 갱신)
+uv sync                   # uv.lock 기준 .venv 재현
+uv lock                   # 락 파일만 갱신
+
+# 실행
+uv run python -m <module>
+uv run pytest
+uv run <script.py>
+```
+
+Dockerfile도 builder stage에서 uv로 venv 생성 후 prod stage에 복사. `pip install`은 쓰지 않는다.
+
+CI에서도 `uv sync && uv run pytest` 형태. Claude는 Python 관련 작업 시 항상 위 명령 패턴을 사용해야 한다.
+
 ## 모노레포 구조
 
 ```
