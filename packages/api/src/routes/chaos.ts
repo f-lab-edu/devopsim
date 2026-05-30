@@ -4,6 +4,12 @@ const MAX_BURN_MS = 10_000
 const MAX_SLOW_MS = 5_000
 const MAX_DB_SLEEP_SEC = 10
 const MAX_DB_BURST = 100
+const MAX_LEAK_MB_PER_TICK = 100
+const MAX_LEAK_INTERVAL_MS = 10_000
+const MIN_LEAK_INTERVAL_MS = 100
+
+let memoryLeakInterval: NodeJS.Timeout | null = null
+let memoryLeakBuffers: Buffer[] = []
 
 export default async function chaosRoute(app: FastifyInstance) {
   // ── CPU 소모 ────────────────────────────────────────────────────────
@@ -83,5 +89,50 @@ export default async function chaosRoute(app: FastifyInstance) {
   app.get('/chaos/db/error', async () => {
     await app.pg.write.pool.query('SELECT * FROM nonexistent_table_for_chaos')
     return { unreachable: true }
+  })
+
+  // ── Memory leak ────────────────────────────────────────────────────
+  // POST /chaos/memory-leak?mbPerTick=10&intervalMs=1000
+  // setInterval로 heap에 Buffer를 누적. container memory limit 도달 시 OOMKilled.
+  // CHAOS_DANGEROUS_ENABLED=true 일 때만 동작.
+  app.post<{ Querystring: { mbPerTick?: string; intervalMs?: string } }>(
+    '/chaos/memory-leak',
+    async (req, reply) => {
+      if (process.env.CHAOS_DANGEROUS_ENABLED !== 'true') {
+        return reply.code(403).send({ error: 'CHAOS_DANGEROUS_ENABLED is not set' })
+      }
+      if (memoryLeakInterval) {
+        return reply
+          .code(409)
+          .send({ status: 'already_running', accumulatedTicks: memoryLeakBuffers.length })
+      }
+      const mbPerTick = Math.min(
+        Math.max(Number(req.query.mbPerTick ?? 10), 1),
+        MAX_LEAK_MB_PER_TICK
+      )
+      const intervalMs = Math.min(
+        Math.max(Number(req.query.intervalMs ?? 1000), MIN_LEAK_INTERVAL_MS),
+        MAX_LEAK_INTERVAL_MS
+      )
+      memoryLeakInterval = setInterval(() => {
+        memoryLeakBuffers.push(Buffer.alloc(mbPerTick * 1024 * 1024, 'x'))
+      }, intervalMs)
+      req.log.warn({ mbPerTick, intervalMs }, 'memory leak chaos started')
+      return reply.code(202).send({ status: 'started', mbPerTick, intervalMs })
+    }
+  )
+
+  app.post('/chaos/memory-leak/stop', async (_req, reply) => {
+    if (process.env.CHAOS_DANGEROUS_ENABLED !== 'true') {
+      return reply.code(403).send({ error: 'CHAOS_DANGEROUS_ENABLED is not set' })
+    }
+    if (!memoryLeakInterval) {
+      return reply.code(404).send({ status: 'not_running' })
+    }
+    clearInterval(memoryLeakInterval)
+    memoryLeakInterval = null
+    const releasedTicks = memoryLeakBuffers.length
+    memoryLeakBuffers = []
+    return reply.send({ status: 'stopped', releasedTicks })
   })
 }
