@@ -8,6 +8,9 @@ image:
 redis:
   url: "redis://redis.redis.svc.cluster.local:6379"
 
+# Agentic detector 검증용 — OOMKilled 등 K8s event를 만드는 chaos endpoint 활성화
+chaosDangerousEnabled: true
+
 serviceMonitor:
   enabled: true
 
