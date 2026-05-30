@@ -43,6 +43,20 @@ Dockerfile도 builder stage에서 uv로 venv 생성 후 prod stage에 복사. `p
 
 CI에서도 `uv sync && uv run pytest` 형태. Claude는 Python 관련 작업 시 항상 위 명령 패턴을 사용해야 한다.
 
+### 린트 (ruff, 커밋 전 필수)
+
+Python 코드 커밋 전 반드시 아래 두 명령을 모두 통과시켜야 한다:
+
+```bash
+uv run ruff check .       # lint 통과 (errors == 0)
+uv run ruff format .      # 자동 포매팅 적용
+```
+
+설정은 `packages/detector/pyproject.toml` 의 `[tool.ruff]` 섹션. line-length=120,
+select = ["E", "F", "I", "B", "UP", "N", "RUF"]. tests/는 일부 규칙 완화.
+
+이 검증을 거치지 않은 커밋은 만들지 않는다.
+
 ## 모노레포 구조
 
 ```
