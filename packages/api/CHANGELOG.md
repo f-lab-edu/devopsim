@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.11.0...api-v0.12.0) (2026-05-30)
+
+
+### Features
+
+* chaos crash endpoint (CrashLoopBackOff 유도용) ([e348ab0](https://github.com/f-lab-edu/devopsim/commit/e348ab09ed9c1ec5b87b3deb8089f62399681b8f))
+* chaos crash endpoint (CrashLoopBackOff 유도용) ([4efe66b](https://github.com/f-lab-edu/devopsim/commit/4efe66bbca436062b91d30acb68c664dd0dd84b0))
+
 ## [0.11.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.10.0...api-v0.11.0) (2026-05-30)
 
 
