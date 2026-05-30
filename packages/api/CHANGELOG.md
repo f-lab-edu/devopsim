@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.10.0...api-v0.11.0) (2026-05-30)
+
+
+### Features
+
+* chaos memory-leak endpoint (OOMKilled 유도용) ([3e2940e](https://github.com/f-lab-edu/devopsim/commit/3e2940ee5f38c7bed2ccc920ea6b052077353c0f))
+* chaos memory-leak endpoint (OOMKilled 유도용) ([c7bae52](https://github.com/f-lab-edu/devopsim/commit/c7bae522eefade33fe1f2f4f72880c0099d0e763))
+
 ## [0.10.0](https://github.com/f-lab-edu/devopsim/compare/api-v0.9.1...api-v0.10.0) (2026-05-13)
 
 
