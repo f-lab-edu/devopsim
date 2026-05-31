@@ -49,6 +49,29 @@ class _Pipeline:
     grafana_url: str
 
 
+def _build_pipeline(
+    *,
+    investigate_fn: Any,
+    notify_fn: Any,
+    tools: Any,
+    llm: Any,
+    runbook_catalog: str,
+    cluster_context: str,
+    slack: Any,
+    grafana_url: str,
+) -> _Pipeline:
+    return _Pipeline(
+        investigate_fn=investigate_fn,
+        notify_fn=notify_fn,
+        tools=tools,
+        llm=llm,
+        runbook_catalog=runbook_catalog,
+        cluster_context=cluster_context,
+        slack=slack,
+        grafana_url=grafana_url,
+    )
+
+
 async def _safe_invoke(pipeline: _Pipeline, trigger: dict[str, Any]) -> None:
     try:
         result = await pipeline.investigate_fn(
@@ -93,7 +116,7 @@ def make_event_handler(
     allowed_namespaces: tuple[str, ...],
     now_fn: Callable[[], float] = time.monotonic,
 ) -> Handler:
-    pipeline = _Pipeline(
+    pipeline = _build_pipeline(
         investigate_fn=investigate_fn,
         notify_fn=notify_fn,
         tools=tools,
@@ -156,7 +179,7 @@ def make_pod_status_handler(
     allowed_namespaces: tuple[str, ...],
     now_fn: Callable[[], float] = time.monotonic,
 ) -> Handler:
-    pipeline = _Pipeline(
+    pipeline = _build_pipeline(
         investigate_fn=investigate_fn,
         notify_fn=notify_fn,
         tools=tools,
