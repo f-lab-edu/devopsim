@@ -1,0 +1,7 @@
+[
+  {"name": "pod-oom-killed", "description": "Container killed by kernel OOM (lastState.terminated.reason=OOMKilled, exitCode=137). Investigate memory footprint and recent traffic."},
+  {"name": "pod-crashloopbackoff", "description": "Container repeatedly failing to start (Event reason=BackOff, state.waiting.reason=CrashLoopBackOff). Investigate exit code, startup logs, recent changes."},
+  {"name": "alert-db-pool-waiting", "description": "DB connection pool waiting clients > 0 (pg_pool_waiting_clients). Investigate slow queries, traffic spike, pool size."},
+  {"name": "alert-high-cpu", "description": "Pod CPU usage exceeded threshold. Investigate traffic correlation, CPU-bound processing, single-pod abnormality."},
+  {"name": "alert-high-error-rate", "description": "HTTP 5xx rate above threshold. Investigate per-route distribution, error logs, dependency failures, recent deploys."}
+]
