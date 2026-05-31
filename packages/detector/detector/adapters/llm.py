@@ -47,6 +47,7 @@ class AnthropicAdapter:
         }
         if tools:
             kwargs["tools"] = tools
+            kwargs["tool_choice"] = {"type": "auto", "disable_parallel_tool_use": True}
         try:
             response = await self._client.messages.create(**kwargs)
         except APIStatusError as e:
