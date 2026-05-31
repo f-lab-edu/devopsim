@@ -109,7 +109,7 @@ async def test_when_tool_calls_is_empty_actions_taken_is_filled_with_no_tool_cal
         grafana_url="https://grafana.example.com/d/abc",
     )
 
-    assert "(no tool calls)" in slack.sent_messages[0]
+    assert "(도구 호출 없음)" in slack.sent_messages[0]
 
 
 async def test_when_grafana_url_is_passed_links_include_slack_mrkdwn_grafana_dashboard_link():
@@ -129,7 +129,8 @@ async def test_when_grafana_url_is_passed_links_include_slack_mrkdwn_grafana_das
         grafana_url=grafana_url,
     )
 
-    assert f"<{grafana_url}|Grafana dashboard>" in slack.sent_messages[0]
+    # trigger에 namespace가 없으면 root URL + 단순 'Grafana' 라벨로 폴백
+    assert f"<{grafana_url}|Grafana>" in slack.sent_messages[0]
 
 
 # ---------- Adapter behavior (AC-6 ~ AC-7) ----------
