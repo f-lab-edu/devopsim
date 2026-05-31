@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/f-lab-edu/devopsim/compare/detector-v0.1.2...detector-v0.1.3) (2026-05-31)
+
+
+### Bug Fixes
+
+* detector dedup 강화 + 한국어 RCA 강제 보강 ([#111](https://github.com/f-lab-edu/devopsim/issues/111)) ([29665ad](https://github.com/f-lab-edu/devopsim/commit/29665adb8e59c634d8fc6af3251c94f981079adb))
+
 ## [0.1.2](https://github.com/f-lab-edu/devopsim/compare/detector-v0.1.1...detector-v0.1.2) (2026-05-31)
 
 
