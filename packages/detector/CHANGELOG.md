@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/f-lab-edu/devopsim/compare/detector-v0.1.1...detector-v0.1.2) (2026-05-31)
+
+
+### Bug Fixes
+
+* detector budget exceeded 시 final_text 보존 + budget 상향 ([#107](https://github.com/f-lab-edu/devopsim/issues/107)) ([54609de](https://github.com/f-lab-edu/devopsim/commit/54609deea6960042682d6185ac655cd6b39f3282))
+
 ## [0.1.1](https://github.com/f-lab-edu/devopsim/compare/detector-v0.1.0...detector-v0.1.1) (2026-05-31)
 
 
