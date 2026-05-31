@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 DEDUP_COOLDOWN_SECONDS = 300.0
 
@@ -73,6 +76,7 @@ def _build_pipeline(
 
 
 async def _safe_invoke(pipeline: _Pipeline, trigger: dict[str, Any]) -> None:
+    logger.info("investigate start trigger=%s", trigger)
     try:
         result = await pipeline.investigate_fn(
             trigger=trigger,
@@ -82,10 +86,18 @@ async def _safe_invoke(pipeline: _Pipeline, trigger: dict[str, Any]) -> None:
             cluster_context=pipeline.cluster_context,
         )
     except Exception:
+        logger.exception("investigate failed trigger=%s", trigger)
         return
+    logger.info(
+        "investigate done trigger=%s stop_reason=%s steps=%s",
+        trigger,
+        result.stop_reason,
+        result.steps,
+    )
     try:
         await pipeline.notify_fn(result, pipeline.slack, trigger=trigger, grafana_url=pipeline.grafana_url)
     except Exception:
+        logger.exception("notify failed trigger=%s", trigger)
         return
 
 
