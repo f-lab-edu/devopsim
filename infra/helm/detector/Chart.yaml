@@ -1,0 +1,6 @@
+apiVersion: v2
+name: detector
+description: Helm chart for devopsim detector agent (chaos investigation operator)
+type: application
+version: 0.1.0
+appVersion: "0.0.1"
