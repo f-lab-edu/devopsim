@@ -8,7 +8,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-DEDUP_COOLDOWN_SECONDS = 300.0
+DEDUP_COOLDOWN_SECONDS = 1800.0
 
 WATCHED_EVENT_REASONS: frozenset[str] = frozenset(
     {
@@ -155,11 +155,14 @@ def make_event_handler(
             "name": name,
             "kind": involved.get("kind"),
         }
+        # dedup key는 reason+namespace 단위 — pod 이름까지 묶으면 rolling restart로 매번 새 pod
+        # 이름이 생겨 burst alert가 그대로 통과한다. 같은 namespace에서 같은 reason이
+        # 30분 내 다시 발생하면 1건만 보낸다.
         await _dedup_and_invoke(
             pipeline=pipeline,
             context=context,
             now_fn=now_fn,
-            dedup_key=f"event:{reason}:{namespace}:{name}",
+            dedup_key=f"event:{reason}:{namespace}",
             trigger=trigger,
         )
 
@@ -221,7 +224,7 @@ def make_pod_status_handler(
             pipeline=pipeline,
             context=context,
             now_fn=now_fn,
-            dedup_key=f"pod:{reason}:{namespace}:{name}",
+            dedup_key=f"pod:{reason}:{namespace}",
             trigger=trigger,
         )
 
