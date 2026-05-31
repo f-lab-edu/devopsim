@@ -6,6 +6,7 @@ resources:
   - karpenter-nodepool.yaml
   - redis.yaml
   - grafana-dashboard-api.yaml
+  - grafana-dashboard-detector.yaml
   - grafana-dashboard-prometheus-cardinality.yaml
   - prometheus-rules.yaml
   - cert-manager-issuers.yaml
