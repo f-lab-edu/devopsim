@@ -4,8 +4,8 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 import pytest
-from detector.adapters.prometheus import PrometheusAdapter
 
+from detector.adapters.prometheus import PrometheusAdapter
 from detector.agent.tools import (
     PrometheusPort,
     make_promql_query_tool,
