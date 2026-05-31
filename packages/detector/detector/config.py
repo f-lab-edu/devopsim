@@ -4,6 +4,7 @@ from dataclasses import dataclass
 PROMETHEUS_DEFAULT = "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
 LOKI_DEFAULT = "http://loki.monitoring.svc.cluster.local:3100"
 ALERTMANAGER_DEFAULT = "http://kube-prometheus-stack-alertmanager.monitoring.svc.cluster.local:9093"
+GRAFANA_DEFAULT = "https://grafana.devopsim.cloud"
 MODEL_DEFAULT = "claude-sonnet-4-6"
 
 
@@ -14,6 +15,7 @@ class Config:
     prometheus_url: str
     loki_url: str
     alertmanager_url: str
+    grafana_url: str
     slack_webhook_url: str
     allowed_namespaces: tuple[str, ...]
     max_steps: int
@@ -27,6 +29,7 @@ class Config:
             prometheus_url=os.environ.get("PROMETHEUS_URL", PROMETHEUS_DEFAULT),
             loki_url=os.environ.get("LOKI_URL", LOKI_DEFAULT),
             alertmanager_url=os.environ.get("ALERTMANAGER_URL", ALERTMANAGER_DEFAULT),
+            grafana_url=os.environ.get("GRAFANA_URL", GRAFANA_DEFAULT),
             slack_webhook_url=os.environ.get("SLACK_WEBHOOK_URL", ""),
             allowed_namespaces=tuple(
                 ns.strip() for ns in os.environ.get("ALLOWED_NAMESPACES", "api").split(",") if ns.strip()
