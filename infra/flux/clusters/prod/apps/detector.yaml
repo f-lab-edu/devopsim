@@ -1,0 +1,19 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: detector
+  namespace: detector
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./infra/helm/detector
+      valuesFiles:
+        - infra/helm/detector/values.yaml
+        - infra/helm/detector/values-production.yaml
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+      interval: 1m
+      reconcileStrategy: Revision

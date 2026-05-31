@@ -7,3 +7,4 @@ resources:
   - api-middleware.yaml
   - grafana-httproute.yaml
   - grafana-http-redirect.yaml
+  - detector.yaml
