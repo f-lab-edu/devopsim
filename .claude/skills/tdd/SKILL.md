@@ -38,6 +38,7 @@ TDD(Red-Green-Refactor) 사이클을 **컨텍스트 격리된 sub-agent**로 실
   2. **spec.md의 § In Scope 항목 전체를 테스트로 커버해야 한다.** AC/EC에 명시 안 된 In Scope 컴포넌트(Port, Adapter, factory, 변환 로직 등)가 있으면 `TEST FAIL: missing AC for <component>` 로 보고하고 즉시 중단.
   3. 테스트 이름은 AC/EC 문장을 snake_case로 옮긴 것.
   4. 한 테스트 = 한 행위(behavior). 내부 메서드 호출 횟수/순서 검증 금지.
+  4-1. spec의 **고정된 멤버 집합**(enum, frozenset 상수, Literal 등)은 `assert WATCHED_X == frozenset({"A", "B", "C"})` 같은 **exact-match**로 단언해야 한다. `"A" in WATCHED_X` 형태만으로는 impl-author가 spec 외 항목을 추가해도 통과하므로 spec drift 방지가 안 된다.
   5. 외부 의존성(K8s/Prom/Loki/Anthropic 등 Protocol)은 **Fake<X>** 클래스로 모사 (test 파일 안 또는 tests/fakes/). unittest.mock 사용은 httpx/subprocess 경계에서만.
   6. **HTTP 경계 Adapter**(httpx 사용)는 `httpx.MockTransport` 또는 `respx`로 boundary 단위 테스트. 요청 URL/메서드/쿼리 파라미터를 단언.
   7. async def test_* 사용. asyncio_mode=auto이므로 마커 불필요.
