@@ -1,0 +1,10 @@
+image:
+  repository: 893286712531.dkr.ecr.us-east-2.amazonaws.com/devopsim/detector
+  tag: "0.0.1"
+
+serviceMonitor:
+  enabled: true
+
+config:
+  allowedNamespaces: "api"
+  dryRun: "false"

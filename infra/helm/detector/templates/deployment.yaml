@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "detector.fullname" . }}
+  labels:
+    {{- include "detector.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "detector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "detector.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.anthropicApiKeyName }}
+                  key: {{ .Values.secrets.anthropicApiKeyKey }}
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.slackWebhookName }}
+                  key: {{ .Values.secrets.slackWebhookKey }}
+            - name: DETECTOR_MODEL
+              value: {{ .Values.config.model | quote }}
+            - name: PROMETHEUS_URL
+              value: {{ .Values.config.prometheusUrl | quote }}
+            - name: LOKI_URL
+              value: {{ .Values.config.lokiUrl | quote }}
+            - name: ALERTMANAGER_URL
+              value: {{ .Values.config.alertmanagerUrl | quote }}
+            - name: GRAFANA_URL
+              value: {{ .Values.config.grafanaUrl | quote }}
+            - name: ALLOWED_NAMESPACES
+              value: {{ .Values.config.allowedNamespaces | quote }}
+            - name: MAX_STEPS
+              value: {{ .Values.config.maxSteps | quote }}
+            - name: DRY_RUN
+              value: {{ .Values.config.dryRun | quote }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
+              protocol: TCP
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

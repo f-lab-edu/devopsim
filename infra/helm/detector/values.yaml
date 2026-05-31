@@ -1,0 +1,48 @@
+replicaCount: 1
+
+image:
+  repository: devopsim-detector
+  pullPolicy: IfNotPresent
+  tag: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  name: detector
+
+rbac:
+  create: true
+
+config:
+  model: "claude-sonnet-4-6"
+  prometheusUrl: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
+  lokiUrl: "http://loki.monitoring.svc.cluster.local:3100"
+  alertmanagerUrl: "http://kube-prometheus-stack-alertmanager.monitoring.svc.cluster.local:9093"
+  grafanaUrl: "https://grafana.devopsim.cloud"
+  allowedNamespaces: "api"
+  maxSteps: "10"
+  dryRun: "false"
+
+secrets:
+  anthropicApiKeyName: detector-anthropic-key
+  anthropicApiKeyKey: api-key
+  slackWebhookName: detector-slack-webhook
+  slackWebhookKey: url
+
+service:
+  type: ClusterIP
+  metricsPort: 8000
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"

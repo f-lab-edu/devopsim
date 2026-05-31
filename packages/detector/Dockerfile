@@ -9,7 +9,16 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.12-slim AS prod
 WORKDIR /app
-RUN groupadd -r app && useradd -r -g app -u 1000 app
+RUN groupadd -r app && useradd -r -g app -u 1000 app \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && KUBECTL_VERSION="v1.35.5" \
+    && curl -fsSL -o /usr/local/bin/kubectl \
+       "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+    && chmod +x /usr/local/bin/kubectl \
+    && apt-get purge -y curl \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/.venv /app/.venv
 COPY detector /app/detector
 ENV PATH="/app/.venv/bin:$PATH" \
