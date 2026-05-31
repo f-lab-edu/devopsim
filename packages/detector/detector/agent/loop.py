@@ -5,8 +5,8 @@ from typing import Any, Protocol
 
 from detector.agent.tools.base import Tool
 
-MAX_STEPS = 10
-MAX_TOTAL_INPUT_TOKENS = 50_000
+MAX_STEPS = 15
+MAX_TOTAL_INPUT_TOKENS = 200_000
 DEFAULT_MODEL = "claude-sonnet-4-6"
 DEFAULT_MAX_TOKENS = 4096
 
@@ -178,11 +178,13 @@ async def investigate(
 
         if total_input > MAX_TOTAL_INPUT_TOKENS:
             stop_reason = _STOP_BUDGET_EXCEEDED
-            final_text = ""
+            # 직전 LLM 응답의 reasoning text를 보존 — 빈 RCA보다 미완성 RCA가 낫다.
+            final_text = _extract_text(response.content)
             break
     else:
         stop_reason = _STOP_MAX_STEPS
-        final_text = ""
+        # MAX_STEPS 도달 시점의 마지막 응답 reasoning을 보존.
+        final_text = _extract_text(response.content)
 
     return InvestigationResult(
         final_text=final_text,
