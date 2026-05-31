@@ -1,10 +1,10 @@
-# Incident Report
+# 인시던트 리포트
 
-*Root cause analysis*
+*근본 원인 분석*
 {rca}
 
-*Actions taken*
+*수행한 조치*
 {actions_taken}
 
-*Links*
+*링크*
 {links}
