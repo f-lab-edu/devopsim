@@ -57,6 +57,32 @@ select = ["E", "F", "I", "B", "UP", "N", "RUF"]. tests/는 일부 규칙 완화.
 
 이 검증을 거치지 않은 커밋은 만들지 않는다.
 
+### TDD (Red-Green-Refactor, 모든 신규 기능 필수)
+
+신규 Python 기능 구현 시 다음 흐름을 따른다:
+
+1. spec 작성: 사용자와 합의해 `.plan/specs/<feature>.md` 생성 (사용자 의도 직접 표현)
+2. `/tdd <spec-path>` 스킬 호출 → Red-Green-Refactor 사이클을 컨텍스트 격리된 sub-agent로 순차 실행
+   - test-author agent (spec.md만 input)
+   - impl-author agent (test_*.py만 input)
+   - refactor agent (impl + 테스트 결과만 input)
+3. 각 단계 자동 검증 통과 후 사용자 승인 → 커밋
+
+**핵심 원칙**:
+- 외부 의존성(K8s, Prom, Loki, Anthropic 등 Protocol 정의)은 **`tests/fakes/Fake<X>` 클래스 직접 구현**. `unittest.mock`/`pytest-mock`은 httpx 경계에서만.
+- Anthropic SDK는 절대 실호출 금지 → `httpx.MockTransport` 주입.
+- 테스트는 **행위(input→output/사이드이펙트)** 만 검증. 내부 메서드 호출 횟수/순서 검증 금지.
+- 한 사이클 1~10분. step이 30분 넘어가면 spec을 더 작게 쪼갠다.
+- sub-agent prompt에 부모 conversation 내용을 인용하지 않는다(격리 보장).
+
+**커밋 전 필수 명령** (ruff + tests 통합):
+```bash
+uv run ruff check . && uv run ruff format --check . && uv run pytest -n auto
+```
+
+상세 가이드 및 DoD 체크리스트: `.plan/detector/python-tdd.md` (로컬 메모, gitignore).
+스킬 정의: `.claude/skills/tdd/SKILL.md`.
+
 ## 모노레포 구조
 
 ```
