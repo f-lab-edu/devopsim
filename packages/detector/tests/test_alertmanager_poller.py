@@ -1,9 +1,8 @@
 import json
 from unittest.mock import AsyncMock, MagicMock
 
-from detector.triggers.alertmanager_poller import WATCHED_ALERTNAMES, make_poll_once
-
 from detector.agent.loop import InvestigationResult
+from detector.triggers.alertmanager_poller import WATCHED_ALERTNAMES, make_poll_once
 from detector.triggers.k8s_events import TriggerContext
 
 
