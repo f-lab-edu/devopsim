@@ -128,6 +128,21 @@ jobs:
           sed -i "s/^appVersion: .*/appVersion: \"$VERSION\"/" "$CHART"
           echo "Updated $CHART → appVersion: $VERSION"
 
+      # Python 패키지일 경우 uv.lock도 release-please의 pyproject.toml bump에 맞춰 sync.
+      # 아니면 working tree drift 발생 (다음 PR 만들 때마다 uv.lock 한 줄 변경 떨림).
+      - name: Sync uv.lock (Python 패키지)
+        run: |
+          SERVICE="${{ steps.tag.outputs.service }}"
+          PKG_DIR="packages/$SERVICE"
+          if [ -f "$PKG_DIR/uv.lock" ] && [ -f "$PKG_DIR/pyproject.toml" ]; then
+            echo "Syncing uv.lock for $SERVICE"
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            export PATH="$HOME/.local/bin:$PATH"
+            (cd "$PKG_DIR" && uv lock)
+          else
+            echo "$SERVICE is not a Python package — skipping uv lock"
+          fi
+
       # Git 커밋 + Push → FluxCD 배포 트리거
       - name: Commit and push
         run: |
@@ -138,6 +153,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "infra/helm/$SERVICE/values-production.yaml" \
                   "infra/helm/$SERVICE/Chart.yaml"
+          # uv.lock이 존재하고 변경된 경우만 staging
+          if [ -f "packages/$SERVICE/uv.lock" ]; then
+            git add "packages/$SERVICE/uv.lock" || true
+          fi
 
           if git diff --staged --quiet; then
             echo "No changes to commit — values already up to date"
