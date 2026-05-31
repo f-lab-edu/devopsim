@@ -8,5 +8,15 @@
 
 {runbook_body}
 
-Proceed step-by-step. Use the available tools to gather evidence before drawing
-conclusions. Stop once you have enough signal to write a root-cause analysis.
+## 조사 절차
+
+도구를 사용해 증거를 단계적으로 수집한 뒤 결론을 내려라. 충분한 신호를 모았으면
+즉시 멈추고 **한국어로 RCA를 작성한다**. RCA에는 다음 4가지 항목을 한국어로
+포함하라:
+
+1. **근본 원인** — 1~2문장의 한국어 진단
+2. **증거 사슬** — 시간순 evidence 표 (열 헤더와 행 텍스트 모두 한국어)
+3. **권장 조치** — 즉시/단기 조치 한국어 bullet
+4. **참고** — 관련 메트릭/로그/이벤트 한 줄 한국어 요약
+
+**모든 출력 텍스트는 한국어. 영어 문장 작성 금지** (기술 용어 명사는 원어 OK).
