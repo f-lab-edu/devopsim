@@ -102,6 +102,70 @@ spec:
             summary: "DB query p95 > 100ms ({{ $labels.operation }} / {{ $labels.pool }} pool)"
             description: "{{ $labels.operation }} 쿼리 ({{ $labels.pool }} pool) p95 = {{ $value | humanizeDuration }}"
 
+    - name: detector.rules
+      interval: 30s
+      rules:
+        - alert: DetectorDown
+          # ServiceMonitor scrape이 1분간 실패 → Pod 죽음 or metrics 노출 실패
+          expr: up{job="serviceMonitor/detector/detector/0"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            service: detector
+          annotations:
+            summary: "Detector Pod scrape 실패 > 1분"
+            description: "detector Pod {{ $labels.pod }}의 /metrics scrape이 1분간 실패."
+
+        - alert: DetectorInvestigationFailureRate
+          # 5분간 비정상 종료(stop_reason != end_turn) 비율이 50% 이상 + 분모 0.01 rps 이상
+          expr: |
+            (
+              sum(rate(detector_investigations_total{result!="end_turn"}[5m]))
+                /
+              sum(rate(detector_investigations_total[5m]))
+            ) > 0.5
+            and
+            sum(rate(detector_investigations_total[5m])) > 0.01
+          for: 5m
+          labels:
+            severity: warning
+            service: detector
+          annotations:
+            summary: "Detector investigation 실패율 > 50% (5분 평균)"
+            description: "현재 비정상 종료 비율 = {{ $value | humanizePercentage }}. budget exceeded / max steps / refusal 등이 절반 이상."
+
+        - alert: DetectorHighLatencyP95
+          # 단일 investigation이 60s 초과 (p95) → 토큰 budget 직전이거나 tool 응답 느림
+          expr: |
+            histogram_quantile(0.95,
+              sum by (le) (rate(detector_investigation_duration_seconds_bucket[5m]))
+            ) > 60
+          for: 10m
+          labels:
+            severity: warning
+            service: detector
+          annotations:
+            summary: "Detector investigation p95 latency > 60s"
+            description: "현재 p95 = {{ $value | humanizeDuration }}. tool 응답 또는 LLM 호출 지연 의심."
+
+        - alert: DetectorToolCallErrorRate
+          # 5분간 tool 호출 에러율 > 20% + 분모 0.05 rps 이상
+          expr: |
+            (
+              sum(rate(detector_tool_calls_total{status="error"}[5m]))
+                /
+              sum(rate(detector_tool_calls_total[5m]))
+            ) > 0.2
+            and
+            sum(rate(detector_tool_calls_total[5m])) > 0.05
+          for: 10m
+          labels:
+            severity: warning
+            service: detector
+          annotations:
+            summary: "Detector tool 호출 에러율 > 20%"
+            description: "현재 에러율 = {{ $value | humanizePercentage }}. RBAC / external 시스템 연결 점검 필요."
+
     - name: prometheus.rules
       interval: 30s
       rules:
