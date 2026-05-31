@@ -6,6 +6,7 @@ import sys
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import httpx
 import kopf
@@ -168,21 +169,31 @@ async def _on_startup(**_):
     task.add_done_callback(_background_tasks.discard)
 
 
+def _kopf_body_to_dict(body: Any) -> dict:
+    """kopf의 Body/BodyEssence는 nested 매핑이 dict-subclass라 그대로 read는 가능.
+    annotation_handler 내부에서 body.get("metadata", {}).get("annotations") 형태로 접근하므로
+    raw body를 그대로 전달한다 (top-level dict 변환은 nested mapping을 깨뜨릴 수 있음)."""
+    return body
+
+
 @kopf.on.event("v1", "events")
 async def _on_event(body, **_):
     if _app is not None:
-        await _app.event_handler(dict(body))
+        await _app.event_handler(_kopf_body_to_dict(body))
 
 
 @kopf.on.update("v1", "pods")
 async def _on_pod_update(body, **_):
     if _app is None:
         return
-    body_dict = dict(body)
-    await _app.pod_status_handler(body_dict)
-    annotations = (body_dict.get("metadata") or {}).get("annotations") or {}
+    raw = _kopf_body_to_dict(body)
+    metadata = raw.get("metadata") or {}
+    name = metadata.get("name")
+    annotations = metadata.get("annotations") or {}
     annotation_value = annotations.get(ANNOTATION_KEY)
-    await _app.annotation_handler(new=annotation_value, body=body_dict)
+    logger.info("pod update name=%s annotation=%s", name, annotation_value)
+    await _app.pod_status_handler(raw)
+    await _app.annotation_handler(new=annotation_value, body=raw)
 
 
 async def _poll_loop(poll_once: Callable[[], Awaitable[None]], interval_seconds: int) -> None:
