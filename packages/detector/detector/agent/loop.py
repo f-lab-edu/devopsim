@@ -169,7 +169,10 @@ async def investigate(
             final_text = _extract_text(response.content)
             break
 
-        messages.append({"role": "assistant", "content": response.content})
+        assistant_content = [
+            b for b in response.content if not (b.get("type") == _BLOCK_TYPE_TEXT and not b.get("text"))
+        ]
+        messages.append({"role": "assistant", "content": assistant_content})
         result_block = await _run_tool_call(tool_use, tool_by_name, tool_call_logs)
         messages.append({"role": "user", "content": [result_block]})
 

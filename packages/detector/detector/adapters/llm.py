@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-from anthropic import AsyncAnthropic
+from anthropic import APIStatusError, AsyncAnthropic
 
 from detector.agent.loop import LLMResponse
+
+logger = logging.getLogger(__name__)
 
 
 def _content_block_to_dict(block: Any) -> dict[str, Any]:
@@ -44,7 +47,11 @@ class AnthropicAdapter:
         }
         if tools:
             kwargs["tools"] = tools
-        response = await self._client.messages.create(**kwargs)
+        try:
+            response = await self._client.messages.create(**kwargs)
+        except APIStatusError as e:
+            logger.error("anthropic API error status=%s body=%s", e.status_code, getattr(e, "body", None))
+            raise
         return LLMResponse(
             stop_reason=response.stop_reason or "",
             content=[_content_block_to_dict(b) for b in response.content],
