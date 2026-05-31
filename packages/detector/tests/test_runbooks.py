@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pytest
-from detector.adapters.runbooks import RunbookFilesystemAdapter
 
+from detector.adapters.runbooks import RunbookFilesystemAdapter
 from detector.agent.tools import RunbookPort, make_fetch_runbook_tool
 
 
