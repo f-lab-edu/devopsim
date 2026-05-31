@@ -3,8 +3,8 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 import pytest
-from detector.adapters.alertmanager import AlertmanagerAdapter
 
+from detector.adapters.alertmanager import AlertmanagerAdapter
 from detector.agent.tools import (
     AlertmanagerPort,
     make_alertmanager_list_alerts_tool,
