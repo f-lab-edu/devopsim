@@ -4,8 +4,8 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 import pytest
-from detector.adapters.loki import LokiAdapter
 
+from detector.adapters.loki import LokiAdapter
 from detector.agent.tools import (
     LokiPort,
     make_loki_query_range_tool,
