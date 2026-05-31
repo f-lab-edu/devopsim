@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/f-lab-edu/devopsim/compare/detector-v0.1.0...detector-v0.1.1) (2026-05-31)
+
+
+### Bug Fixes
+
+* detector RCA 한국어 강제 + Slack Grafana 딥링크 ([#105](https://github.com/f-lab-edu/devopsim/issues/105)) ([472439e](https://github.com/f-lab-edu/devopsim/commit/472439e0c4c1b8a489e516f5b21da1a17f9f38d6))
+
 ## [0.1.0](https://github.com/f-lab-edu/devopsim/compare/detector-v0.0.5...detector-v0.1.0) (2026-05-31)
 
 
