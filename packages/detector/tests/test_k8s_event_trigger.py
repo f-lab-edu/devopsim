@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
+from detector.agent.loop import InvestigationResult
 from detector.triggers.k8s_events import (
     DEDUP_COOLDOWN_SECONDS,
     WATCHED_EVENT_REASONS,
@@ -8,8 +9,6 @@ from detector.triggers.k8s_events import (
     make_event_handler,
     make_pod_status_handler,
 )
-
-from detector.agent.loop import InvestigationResult
 
 
 def _make_investigation_result() -> InvestigationResult:
