@@ -273,8 +273,8 @@ async def test_ac5_loop_exits_with_max_steps_exceeded_after_max_steps_iterations
 async def test_ac6_cumulative_input_tokens_over_budget_returns_max_tokens_budget_exceeded():
     """AC-6: 누적 input_tokens > MAX_TOTAL_INPUT_TOKENS → 'max_tokens_budget_exceeded'."""
     tool, _ = make_fake_tool(name="big", output="ok")
-    # Two responses, each with 30000 input_tokens → cumulative 60000 > 50000.
-    huge = 30000
+    # Two responses, each input_tokens > MAX_TOTAL_INPUT_TOKENS/2 → 누적이 MAX 초과.
+    huge = MAX_TOTAL_INPUT_TOKENS // 2 + 1
     llm = FakeLLM(
         responses=[
             tool_use_response("big", {"value": "a"}, input_tokens=huge),
