@@ -6,6 +6,12 @@
       "component": "api",
       "include-component-in-tag": true,
       "changelog-path": "CHANGELOG.md"
+    },
+    "packages/detector": {
+      "release-type": "python",
+      "component": "detector",
+      "include-component-in-tag": true,
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

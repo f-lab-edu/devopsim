@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api: ${{ steps.filter.outputs.api }}
+      detector: ${{ steps.filter.outputs.detector }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +31,8 @@ jobs:
             api:
               - 'packages/api/**'
               - 'packages/shared/**'
+            detector:
+              - 'packages/detector/**'
 
   # 2. 테스트
   # release-please 커밋(package.json bump + CHANGELOG)은 코드 변경이 없으므로 test 스킵
@@ -127,3 +130,77 @@ jobs:
             BUILD_SERVICE=api
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # 4. detector 테스트 (uv + ruff + pytest)
+  test-detector:
+    needs: detect
+    if: |
+      needs.detect.outputs.detector == 'true' &&
+      !startsWith(github.event.head_commit.message, 'chore(main): release')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.11.17"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        working-directory: packages/detector
+        run: uv sync --frozen
+
+      - name: Lint (ruff check)
+        working-directory: packages/detector
+        run: uv run ruff check .
+
+      - name: Format check (ruff format)
+        working-directory: packages/detector
+        run: uv run ruff format --check .
+
+      - name: Run tests
+        working-directory: packages/detector
+        run: uv run pytest -n auto
+
+  # 5. detector Build & ECR Push
+  build-detector:
+    needs: [detect, test-detector]
+    if: |
+      !failure() &&
+      github.event_name == 'push' &&
+      needs.detect.outputs.detector == 'true' &&
+      (needs.test-detector.result == 'success' || needs.test-detector.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push detector
+        uses: docker/build-push-action@v6
+        with:
+          context: packages/detector
+          file: packages/detector/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.ECR_REGISTRY }}/devopsim/detector:${{ github.sha }}
+          cache-from: type=gha,scope=detector
+          cache-to: type=gha,mode=max,scope=detector

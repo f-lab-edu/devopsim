@@ -1,6 +1,6 @@
 [project]
 name = "devopsim-detector"
-version = "0.0.1"
+version = "0.0.5"
 description = "Agentic SRE detector for devopsim cluster"
 requires-python = ">=3.12"
 dependencies = [
