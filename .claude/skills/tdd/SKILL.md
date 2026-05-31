@@ -42,7 +42,10 @@ TDD(Red-Green-Refactor) 사이클을 **컨텍스트 격리된 sub-agent**로 실
   6. **HTTP 경계 Adapter**(httpx 사용)는 `httpx.MockTransport` 또는 `respx`로 boundary 단위 테스트. 요청 URL/메서드/쿼리 파라미터를 단언.
   7. async def test_* 사용. asyncio_mode=auto이므로 마커 불필요.
   8. 출력 파일: packages/detector/tests/test_<feature>.py (기존 평탄 구조 유지)
-  9. ruff(line-length=120, select=E/F/I/B/UP/N/RUF) **check + format** 모두 통과 필수. 작성 후 `uv run ruff format <path>`도 실행.
+  9. ruff 모두 통과 필수. 작성 후 다음 순서로 실행:
+     - `uv run ruff check <path> --fix` (isort 등 자동 수정 가능한 lint 적용 — ruff format은 import 정렬 안 함)
+     - `uv run ruff format <path>` (코드 포매팅)
+     - `uv run ruff check <path>` 와 `uv run ruff format --check <path>` 모두 pass 확인.
 
   완료 후 다음을 응답하라:
   - 생성한 파일 경로
