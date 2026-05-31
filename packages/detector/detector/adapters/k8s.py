@@ -1,5 +1,7 @@
 import asyncio
 
+_DRY_RUN_FLAG = "--dry-run=server"
+
 
 class K8sAdapter:
     async def _run(self, *args: str) -> str:
@@ -13,6 +15,11 @@ class K8sAdapter:
         if proc.returncode != 0:
             return f"kubectl exit {proc.returncode}\n{stderr.decode().strip()}"
         return stdout.decode()
+
+    async def _run_write(self, args: list[str], *, dry_run: bool) -> str:
+        if dry_run:
+            args.append(_DRY_RUN_FLAG)
+        return await self._run(*args)
 
     async def get(self, kind: str, namespace: str, name: str | None) -> str:
         args = ["get", kind]
@@ -44,3 +51,15 @@ class K8sAdapter:
         if field_selector:
             args += ["--field-selector", field_selector]
         return await self._run(*args)
+
+    async def restart_deployment(self, namespace: str, name: str, *, dry_run: bool) -> str:
+        args = ["rollout", "restart", "deployment", name, "-n", namespace]
+        return await self._run_write(args, dry_run=dry_run)
+
+    async def scale_deployment(self, namespace: str, name: str, replicas: int, *, dry_run: bool) -> str:
+        args = ["scale", "deployment", name, f"--replicas={replicas}", "-n", namespace]
+        return await self._run_write(args, dry_run=dry_run)
+
+    async def delete_pod(self, namespace: str, name: str, *, dry_run: bool) -> str:
+        args = ["delete", "pod", name, "-n", namespace]
+        return await self._run_write(args, dry_run=dry_run)
