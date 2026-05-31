@@ -21,7 +21,7 @@ module "ecr" {
   source = "../modules/ecr"
 
   project      = var.project
-  repositories = ["api"]
+  repositories = ["api", "detector"]
   tags         = local.tags
 }
 
