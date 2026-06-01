@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/f-lab-edu/devopsim/compare/detector-v0.1.3...detector-v0.2.0) (2026-06-01)
+
+
+### Features
+
+* detector tool kubectl_rollout_history 추가 ([#119](https://github.com/f-lab-edu/devopsim/issues/119)) ([285af53](https://github.com/f-lab-edu/devopsim/commit/285af53e1554fbff6a9a3555d7cdabd8795d6555))
+
 ## [0.1.3](https://github.com/f-lab-edu/devopsim/compare/detector-v0.1.2...detector-v0.1.3) (2026-05-31)
 
 
