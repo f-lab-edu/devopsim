@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from detector.agent.tools.base import Tool
+from detector.prompts import render_prompt
 
 MAX_STEPS = 15
 MAX_TOTAL_INPUT_TOKENS = 200_000
@@ -60,23 +61,22 @@ class LLMPort(Protocol):
 
 
 def _build_system_blocks(cluster_context: str) -> list[dict[str, Any]]:
-    intro = (
-        "You are an SRE assistant investigating production alerts. "
-        "Use the provided tools to inspect the cluster and explain root causes. "
-        "Stop as soon as you can give a concise actionable summary."
-    )
+    text = render_prompt("system", cluster_context=cluster_context)
     return [
-        {"type": _BLOCK_TYPE_TEXT, "text": intro},
         {
             "type": _BLOCK_TYPE_TEXT,
-            "text": f"Cluster context:\n{cluster_context}",
+            "text": text,
             "cache_control": {"type": "ephemeral"},
         },
     ]
 
 
 def _build_initial_user_message(trigger: dict[str, Any], runbook_catalog: str) -> dict[str, Any]:
-    text = f"Trigger:\n{trigger}\n\nRunbook catalog:\n{runbook_catalog}"
+    text = render_prompt(
+        "investigation",
+        trigger_summary=str(trigger),
+        runbook_catalog=runbook_catalog,
+    )
     return {"role": "user", "content": [{"type": _BLOCK_TYPE_TEXT, "text": text}]}
 
 
