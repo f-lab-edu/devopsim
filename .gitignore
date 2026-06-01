@@ -26,3 +26,4 @@ __pycache__/
 # OS / IDE / Claude Code 로컬 임시
 .DS_Store
 .claude/scheduled_tasks.lock
+docs/chaos

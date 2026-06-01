@@ -118,7 +118,6 @@ export default async function chaosRoute(app: FastifyInstance) {
       memoryLeakInterval = setInterval(() => {
         memoryLeakBuffers.push(Buffer.alloc(mbPerTick * 1024 * 1024, 'x'))
       }, intervalMs)
-      req.log.warn({ mbPerTick, intervalMs }, 'memory leak chaos started')
       return reply.code(202).send({ status: 'started', mbPerTick, intervalMs })
     }
   )
@@ -146,7 +145,6 @@ export default async function chaosRoute(app: FastifyInstance) {
     }
     const delayMs = Math.min(Math.max(Number(req.query.delayMs ?? 100), 0), MAX_CRASH_DELAY_MS)
     setTimeout(() => {
-      req.log.warn({ delayMs }, 'chaos crash exiting')
       process.exit(1)
     }, delayMs)
     return reply.code(202).send({ status: 'exiting', delayMs })
