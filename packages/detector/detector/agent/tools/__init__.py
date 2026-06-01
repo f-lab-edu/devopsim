@@ -9,6 +9,7 @@ from .kubectl import (
     make_kubectl_events_tool,
     make_kubectl_get_tool,
     make_kubectl_logs_tool,
+    make_kubectl_rollout_history_tool,
 )
 from .loki import (
     LokiPort,
@@ -46,6 +47,7 @@ __all__ = [
     "make_kubectl_events_tool",
     "make_kubectl_get_tool",
     "make_kubectl_logs_tool",
+    "make_kubectl_rollout_history_tool",
     "make_loki_query_range_tool",
     "make_loki_query_tool",
     "make_promql_query_tool",

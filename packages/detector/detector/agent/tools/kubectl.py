@@ -17,6 +17,13 @@ class KubernetesPort(Protocol):
         previous: bool,
     ) -> str: ...
     async def list_events(self, namespace: str, field_selector: str | None) -> str: ...
+    async def rollout_history(
+        self,
+        kind: str,
+        namespace: str,
+        name: str,
+        revision: int | None,
+    ) -> str: ...
     async def restart_deployment(self, namespace: str, name: str, *, dry_run: bool) -> str: ...
     async def scale_deployment(self, namespace: str, name: str, replicas: int, *, dry_run: bool) -> str: ...
     async def delete_pod(self, namespace: str, name: str, *, dry_run: bool) -> str: ...
@@ -97,5 +104,32 @@ def make_kubectl_events_tool(k8s: KubernetesPort) -> Tool:
         name="kubectl_events",
         description="List K8s events sorted by lastTimestamp. Use field_selector to filter (e.g. reason=BackOff).",
         input_model=KubectlEventsInput,
+        handler=handler,
+    )
+
+
+class KubectlRolloutHistoryInput(BaseModel):
+    kind: str = Field(default="deployment", description="Workload kind: deployment / statefulset / daemonset")
+    namespace: str
+    name: str
+    revision: int | None = Field(
+        default=None,
+        description=(
+            "Specific revision number to inspect (returns pod template with image/env). Omit for revision list."
+        ),
+    )
+
+
+def make_kubectl_rollout_history_tool(k8s: KubernetesPort) -> Tool:
+    async def handler(input: KubectlRolloutHistoryInput) -> str:
+        return await k8s.rollout_history(input.kind, input.namespace, input.name, input.revision)
+
+    return Tool(
+        name="kubectl_rollout_history",
+        description=(
+            "kubectl rollout history. Without revision: revision list with CHANGE-CAUSE. "
+            "With revision: that revision's pod template (image, env). Use to compare current vs prior deploy."
+        ),
+        input_model=KubectlRolloutHistoryInput,
         handler=handler,
     )
