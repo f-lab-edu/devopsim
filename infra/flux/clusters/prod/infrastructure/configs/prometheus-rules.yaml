@@ -102,6 +102,40 @@ spec:
             summary: "DB query p95 > 100ms ({{ $labels.operation }} / {{ $labels.pool }} pool)"
             description: "{{ $labels.operation }} 쿼리 ({{ $labels.pool }} pool) p95 = {{ $value | humanizeDuration }}"
 
+    - name: cni.rules
+      interval: 30s
+      rules:
+        # 노드의 pod 사용률이 85% 이상으로 10분 유지 → IP 풀 압박 임박
+        # PREFIX_DELEGATION 비활성 상태에서 t3a.medium 한계 17 pod 중 15+ 사용 시.
+        - alert: NodeNearMaxPods
+          expr: |
+            (
+              sum by (node) (kubelet_running_pods)
+                /
+              on(node) kube_node_status_allocatable{resource="pods"}
+            ) > 0.85
+          for: 10m
+          labels:
+            severity: warning
+            service: kubernetes
+          annotations:
+            summary: "노드 {{ $labels.node }} pod 사용률 > 85%"
+            description: "현재 {{ $value | humanizePercentage }}. CNI IP 풀 압박 임박. PREFIX_DELEGATION 검토 필요."
+
+        # ContainerCreating 상태로 5분 이상 머무는 pod → CNI/image pull 등 sandbox 실패
+        - alert: PodStuckContainerCreating
+          expr: |
+            sum by (namespace, pod) (
+              kube_pod_container_status_waiting_reason{reason="ContainerCreating"}
+            ) > 0
+          for: 5m
+          labels:
+            severity: warning
+            service: kubernetes
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} ContainerCreating > 5분"
+            description: "Pod sandbox 생성 실패 가능성 (CNI IP 부족, image pull 실패, volume mount 등). kubectl describe pod로 확인."
+
     - name: detector.rules
       interval: 30s
       rules:
