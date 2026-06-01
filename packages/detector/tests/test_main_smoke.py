@@ -1,7 +1,7 @@
 """Smoke tests for detector.main.build_app wiring.
 
 1. build_app가 AppContext의 모든 필드를 채워 반환
-2. tools 13개가 정확한 이름으로 조립됨
+2. tools 14개가 정확한 이름으로 조립됨
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ EXPECTED_TOOL_NAMES = {
     "kubectl_describe",
     "kubectl_logs",
     "kubectl_events",
+    "kubectl_rollout_history",
     "promql_query",
     "promql_range",
     "loki_query",
@@ -61,8 +62,8 @@ async def test_build_app_returns_app_context_with_required_fields(fake_config: C
     assert callable(app.poll_once)
 
 
-async def test_build_app_assembles_thirteen_tools_with_expected_names(fake_config: Config) -> None:
+async def test_build_app_assembles_fourteen_tools_with_expected_names(fake_config: Config) -> None:
     app = await build_app(fake_config)
-    assert len(app.tools) == 13
+    assert len(app.tools) == 14
     actual_tool_names = {t.name for t in app.tools}
     assert actual_tool_names == EXPECTED_TOOL_NAMES

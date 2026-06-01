@@ -52,6 +52,12 @@ class K8sAdapter:
             args += ["--field-selector", field_selector]
         return await self._run(*args)
 
+    async def rollout_history(self, kind: str, namespace: str, name: str, revision: int | None) -> str:
+        args = ["rollout", "history", f"{kind}/{name}", "-n", namespace]
+        if revision is not None:
+            args.append(f"--revision={revision}")
+        return await self._run(*args)
+
     async def restart_deployment(self, namespace: str, name: str, *, dry_run: bool) -> str:
         args = ["rollout", "restart", "deployment", name, "-n", namespace]
         return await self._run_write(args, dry_run=dry_run)
