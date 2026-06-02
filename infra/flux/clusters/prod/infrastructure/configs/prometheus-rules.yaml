@@ -17,6 +17,7 @@ spec:
           labels:
             severity: critical
             service: api
+            namespace: api
           annotations:
             summary: "API Pod scrape failed for >1m"
             description: "api Pod {{ $labels.pod }}의 /metrics scrape이 1분간 실패. Pod이 죽었거나 메트릭 노출 실패."
@@ -29,6 +30,7 @@ spec:
           labels:
             severity: warning
             service: api
+            namespace: api
           annotations:
             summary: "API error rate > 1%"
             description: "현재 에러율 {{ $value | humanizePercentage }} (5분 평균)"
@@ -42,6 +44,7 @@ spec:
           labels:
             severity: warning
             service: api
+            namespace: api
           annotations:
             summary: "HTTP p95 latency > 500ms"
             description: "현재 p95 = {{ $value | humanizeDuration }}"
@@ -63,6 +66,7 @@ spec:
           labels:
             severity: warning
             service: api
+            namespace: api
           annotations:
             summary: "Cache hit ratio < 50% with traffic present"
             description: "현재 hit ratio = {{ $value | humanizePercentage }}"
@@ -83,6 +87,7 @@ spec:
           labels:
             severity: warning
             service: api
+            namespace: api
           annotations:
             summary: "PG connection pool 고갈 — {{ $labels.pool }} pool idle=0인데 대기 발생"
             description: "{{ $labels.pool }} pool 현재 waiting = {{ $value }}. 풀 max(10) 모두 사용 중. 풀 사이즈 검토 필요."
@@ -98,6 +103,7 @@ spec:
           labels:
             severity: warning
             service: api
+            namespace: api
           annotations:
             summary: "DB query p95 > 100ms ({{ $labels.operation }} / {{ $labels.pool }} pool)"
             description: "{{ $labels.operation }} 쿼리 ({{ $labels.pool }} pool) p95 = {{ $value | humanizeDuration }}"
