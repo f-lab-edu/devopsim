@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/f-lab-edu/devopsim/compare/detector-v0.2.0...detector-v0.2.1) (2026-06-02)
+
+
+### Bug Fixes
+
+* **demos:** demo 1·2 sustained loop으로 변경 ([#124](https://github.com/f-lab-edu/devopsim/issues/124)) ([58949d9](https://github.com/f-lab-edu/devopsim/commit/58949d9b33b4888b81d925b04cbe96c429d9ee7d))
+
 ## [0.2.0](https://github.com/f-lab-edu/devopsim/compare/detector-v0.1.3...detector-v0.2.0) (2026-06-01)
 
 
